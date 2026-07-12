@@ -264,7 +264,7 @@ tasks:
       implement: done
       refactor: done
       test: done
-      commit: open
+      commit: done
 
   - id: home-view
     title: Home screen with three tap zones
