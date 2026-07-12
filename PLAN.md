@@ -536,8 +536,8 @@ tasks:
          complication tap-to-track requires a CIQ watch face that maps CIQ
          complications (stock faces cannot show them).
     status:
-      implement: open
-      commit: open
+      implement: done
+      commit: done
 
   - id: device-test-checklist
     title: On-watch verification checklist
