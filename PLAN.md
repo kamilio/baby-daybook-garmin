@@ -567,8 +567,8 @@ tasks:
       - Battery: no abnormal drain over 48 h with a 15-minute sync
         interval.
     status:
-      implement: open
-      commit: open
+      implement: done
+      commit: done
 ---
 
 # Context
