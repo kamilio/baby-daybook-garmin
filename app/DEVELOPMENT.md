@@ -347,3 +347,49 @@ the simulator's network off before tapping Wet/Dirty to confirm "Queued"
 persists and then back on to confirm it flips to "Synced" -- is still
 recommended before treating this task's `test`/`commit` steps as fully
 closed.
+
+Verified `BottleConfirmView.mc`/`BottleConfirmDelegate.mc` against
+`source/BottleConfirmViewTest.mc` (6 cases: prefill from `Store.lastBottleMl`
+else `Config.defaultBottleMl`; `increment()` clamping at `bottleMaxMl`;
+`decrement()` at `bottleMinMl` parking at "no amount" (`amountMl == null`,
+displayed as "— ml") and staying there on repeated decrements;
+`increment()` from "no amount" jumping back to `bottleMinMl`; `amountText()`
+formatting; and the minus/plus/confirm zone hit-testing agreeing with
+`computeZoneBounds()`). All 6 pass via `monkeydo BabyDaybookTest.prg fenix7
+-t` (72/72 total). `HomeDelegate.activate()`'s existing
+`new BottleConfirmView()` / `new BottleConfirmDelegate()` push call needed a
+one-line update (the delegate now takes the view instance, matching
+`HomeDelegate`'s own pattern of hit-testing against the exact view that was
+last drawn) -- confirmed it still compiles and the Bottle zone still pushes
+the confirm view.
+
+The confirm handler pops `BottleConfirmView` before calling
+`RecordController.recordBottle()` (rather than pushing `SuccessView` on top
+of it), so `SuccessView`'s auto-dismiss pop lands back on `HomeView` --
+matching the diaper instant-record flow -- instead of back on the confirm
+screen. `Store.setLastBottleMl()` is only called when the confirmed amount
+is non-null, per spec (a "no amount" confirm never overwrites the last
+prefill).
+
+Holding −/+ auto-repeats via `onHold`/`onRelease` (a 180 ms `Timer.Timer`
+started on hold, stopped on release) rather than firing on every physical
+touch-down event, since `WatchUi.InputDelegate` only exposes a single
+one-shot `onHold` per press-and-hold gesture (confirmed against the SDK's
+bundled `Input` sample, `samples/Input/source/InputDelegate.mc`) -- no
+continuous key-repeat event exists for touch. `onTap` (for discrete taps),
+`onHold`/`onRelease` (for held taps), `onNextPage`/`onPreviousPage` (Up/Down,
+single step), `onSelect` (START, confirms), and `onBack` (BACK, cancels via
+plain `popView`, nothing saved) are thin wrappers over `BottleConfirmView`'s
+tested stepper/hit-test logic, following this project's established pattern
+of not unit-testing view-push/input-handler code directly.
+
+Same environment constraint as the two tasks above: no Screen
+Recording/Accessibility permission, so the live touch/button walkthrough
+(tapping −/+, holding −/+ to confirm the repeat feels responsive, tapping
+CONFIRM, Up/Down/START/BACK, and the below-minimum "— ml" no-amount record)
+was **not** driven live in this environment. What *was* confirmed: a normal
+build succeeds with `BottleConfirmView.mc` present, and `monkeydo
+BabyDaybook.prg fenix7` launches and runs without crashing. A real
+click-through pass -- both input modes, per the task's own instruction --
+is still recommended before treating this task's `test`/`commit` steps as
+fully closed.

@@ -54,7 +54,8 @@ class HomeDelegate extends WatchUi.BehaviorDelegate {
         Store.setLastAction(action);
 
         if (zone == view.ZONE_BOTTLE) {
-            WatchUi.pushView(new BottleConfirmView(), new BottleConfirmDelegate(), WatchUi.SLIDE_IMMEDIATE);
+            var bottleConfirmView = new BottleConfirmView();
+            WatchUi.pushView(bottleConfirmView, new BottleConfirmDelegate(bottleConfirmView), WatchUi.SLIDE_IMMEDIATE);
         } else {
             RecordController.recordDiaper(action);
         }
