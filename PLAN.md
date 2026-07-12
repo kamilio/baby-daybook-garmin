@@ -466,8 +466,8 @@ tasks:
         pull in only Store.mc, not the network stack. Verify in the fenix7
         simulator's glance carousel.
     status:
-      implement: open
-      test: open
+      implement: done
+      test: done
       commit: open
 
   - id: simulator-e2e

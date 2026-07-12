@@ -76,6 +76,14 @@ class BabyDaybookApp extends Application.AppBase {
     // it's the one action that needs a confirm step before recording.
     // Normal launches (launcher, glance, hotkey) have no
     // :launchedFromComplication and fall through to HomeView as before.
+    // Selecting the glance in the carousel falls through to
+    // getInitialView() below (default platform behavior) -- no extra
+    // routing code needed here.
+    (:glance)
+    function getGlanceView() as [WatchUi.GlanceView] or [WatchUi.GlanceView, WatchUi.GlanceViewDelegate] or Null {
+        return [ new GlanceView() ];
+    }
+
     function getInitialView() as [Views] or [Views, InputDelegates] {
         var complicationId = launchedFromComplication;
         if (complicationId == ComplicationsPublisher.ID_WET) {

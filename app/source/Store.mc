@@ -9,8 +9,11 @@ import Toybox.Lang;
 // last-writer-wins state. Every read also guards against null/malformed
 // shapes, since Storage survives app updates and the on-disk shape may
 // drift between builds. No UI imports: this module must stay safe to pull
-// into the (:background) build.
-(:background)
+// into the (:background) build. A few read-only accessors are also tagged
+// (:glance) -- see each one -- so GlanceView.mc can read them without
+// pulling any other module (network stack included) into the tiny glance
+// memory budget.
+(:background, :glance)
 module Store {
 
     const KEY_AUTH_CACHE = "authCache";
@@ -28,7 +31,7 @@ module Store {
     // epoch-millisecond fields (authCache.expiresAtMillis, lastEventMillis
     // entries) exceed the 32-bit Number range, so Storage may hand back
     // either a Number or a Long depending on how the value was written.
-    (:background)
+    (:background, :glance)
     function isEpochMillis(value as Object) as Boolean {
         return (value instanceof Number) || (value instanceof Long);
     }
@@ -80,7 +83,12 @@ module Store {
 
     // --- syncQueue: array of pending event dictionaries ---
 
-    (:background)
+    // Also (:glance)-tagged: GlanceView reads queue.size() directly, rather
+    // than through SyncQueue.pendingCount(), to keep the glance's dependency
+    // graph limited to this module (SyncQueue.mc pulls in TokenClient/
+    // FirestoreClient, the network stack the glance's memory budget can't
+    // afford).
+    (:background, :glance)
     function getSyncQueue() as Array {
         var raw = Storage.getValue(KEY_SYNC_QUEUE);
         return (raw instanceof Array) ? raw : [];
@@ -149,7 +157,7 @@ module Store {
 
     // Normalized view of all three actions in one Storage read, for
     // callers (glance, complications) that need every action at once.
-    (:background)
+    (:background, :glance)
     function getAllLastEventMillis() as Dictionary {
         var raw = Storage.getValue(KEY_LAST_EVENT_MILLIS);
         var actions = [ACTION_BOTTLE, ACTION_WET, ACTION_DIRTY];

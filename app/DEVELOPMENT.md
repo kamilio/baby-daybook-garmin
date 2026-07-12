@@ -659,3 +659,60 @@ launch; set **Glance Launch Mode** to **Launch in Normal Mode** to test this
 routing for real). A real click-through of all three complication launch
 paths is still recommended before treating this task's `test`/`commit`
 steps as fully closed.
+
+Added `source/GlanceView.mc` (`(:glance)`-tagged `WatchUi.GlanceView`) and
+wired it up via a new `(:glance)`-tagged `BabyDaybookApp.getGlanceView()`,
+which returns `[ new GlanceView() ]` -- selecting the glance in the
+carousel falls through to `getInitialView()` unchanged, so no extra
+routing code was needed there. `GlanceView` draws two lines: "Baby
+Daybook", then a compact summary composed from
+`Store.getAllLastEventMillis()` -- "B 2h · W 45m · D 3h", "—" per action
+never recorded -- plus a small drawn arc-and-count badge (mirroring
+`HomeView`'s own pending-sync badge, for the same font-glyph-coverage
+reason) in the bottom-right corner when the queue is non-empty.
+
+To keep the glance's ~32 KB budget from pulling in the network stack
+(`TokenClient`/`FirestoreClient`/`SyncQueue`'s flush path), `GlanceView`
+touches only `Store.mc`, and reads the pending count as
+`Store.getSyncQueue().size()` directly rather than through
+`SyncQueue.pendingCount()` (identical value, but calling into `SyncQueue`
+at all would require annotating a module that references `TokenClient`/
+`FirestoreClient`). Confirmed against the bundled SDK's
+`doc/docs/Core_Topics/Glances.html` that `(:glance)` is the exact
+counterpart of `(:background)`'s "only annotated code is compiled into
+this restricted context" rule, so the three `Store.mc` accessors
+`GlanceView` calls (`getAllLastEventMillis()`, `getSyncQueue()`, and the
+`isEpochMillis()` helper both call internally) needed `(:glance)` added
+alongside their existing `(:background)` tag; the module declaration
+itself is now `(:background, :glance)` too, matching the existing
+per-symbol tagging convention already used for the background chain. The
+age-format logic is a small intentional duplicate of
+`ComplicationsPublisher.formatAge()` rather than a shared call, so
+`ComplicationsPublisher` (which references `Toybox.Complications`, a
+separate concern from the network stack but still more than the glance
+needs) never has to be pulled into `(:glance)` either.
+
+Verified with a new `source/GlanceViewTest.mc` (4 cases: `ageLabel()`'s
+minute/hour/day formatting and future-clock-skew clamping to "0m" --
+mirroring `ComplicationsPublisherTest.mc`'s coverage of the same shape --
+and `summaryLine()` composing all three actions, including the
+never-recorded "—" case). All 4 new cases pass, and the full suite
+(93/93 across every `*Test.mc` module) still passes, via `monkeydo
+BabyDaybookTest.prg fenix7 -t`. Confirmed a normal build succeeds for all
+three real device IDs (`fenix7`, `fenix7s`, `fenix7x`), that a type-check
+level 2 ("Informative") build is clean (no `(:background)`/`(:glance)`-
+scope leak), and that `monkeydo BabyDaybook.prg fenix7` still launches
+without a new `CIQ_LOG.YML` crash entry.
+
+The live verification this task calls for -- confirming the glance
+actually renders correctly (both lines, the middle-dot separators, and
+the sync badge) in the `fenix7` simulator's glance carousel, and that
+selecting it opens `HomeView` -- was **not** driven live in this
+environment: same missing Screen Recording/Accessibility permission noted
+throughout this file, which blocks `screencapture` from imaging the
+simulator window. What *was* confirmed: the pure summary/age-formatting
+logic above, that `GlanceView`/`getGlanceView()` type-check and build
+cleanly with the `(:glance)` annotations in place across every
+device/build configuration, and that nothing in this change regresses the
+existing 89 tests. A real glance-carousel pass is still recommended before
+treating this task's `test`/`commit` steps as fully closed.
