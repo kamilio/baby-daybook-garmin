@@ -329,7 +329,7 @@ tasks:
     status:
       implement: done
       test: done
-      commit: open
+      commit: done
 
   - id: bottle-confirm-view
     title: Bottle confirm screen with amount stepper
