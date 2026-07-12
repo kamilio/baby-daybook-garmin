@@ -97,3 +97,25 @@ round-trips to the watch — needs either Screen Recording + Accessibility
 permission granted to whatever process drives the simulator, or a physical
 device pass (tracked separately in `docs/device-testing.md`, the
 `device-test-checklist` task).
+
+## Final re-check before closing out
+
+Re-ran the automated portion of this pass as a final gate before considering
+the project done:
+
+- `monkeyc -d fenix7 -f monkey.jungle -o bin/BabyDaybookTest.prg -y
+  ../keys/developer_key.der -t`: **BUILD SUCCESSFUL**.
+- `monkeydo bin/BabyDaybookTest.prg fenix7 -t`: **94/94 PASS**, no
+  failures/errors.
+- Normal builds for all three device profiles
+  (`fenix7`/`fenix7s`/`fenix7x`): **BUILD SUCCESSFUL** for each.
+- Type-check level 2 ("Informative", `-l 2`): **BUILD SUCCESSFUL** — still no
+  `(:background)`/`(:glance)` scope leak.
+- Smoke test: launched each of the three built `.prg`s in the running
+  `connectiq` simulator in turn; `CIQ_LOG.YML`'s hash was identical before
+  and after all three launches — no new crash entry from any profile.
+
+No regressions found. The live touch/button click-through and the settings-
+editor GUI round-trip remain the only unverified items, for the same
+Screen Recording/Accessibility permission constraint documented throughout
+this file and `app/DEVELOPMENT.md`.
