@@ -468,7 +468,7 @@ tasks:
     status:
       implement: done
       test: done
-      commit: open
+      commit: done
 
   - id: simulator-e2e
     title: Full simulator end-to-end pass
