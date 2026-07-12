@@ -240,3 +240,18 @@ live network call — so it's exercised manually in the simulator instead. All
 `ConfigTest` + `StoreTest` + `TokenClientTest`). Confirmed a normal build
 still succeeds with `TokenClient.mc`/`TokenClientTest.mc` present, and that
 `(:background)` annotations hold (no UI imports pulled into the module).
+
+Verified `FirestoreClient.mc` against `source/FirestoreClientTest.mc` (9
+cases: `documents:commit` request-body field encoding for both event types
+per `docs/wire-format.md` -- `volume` as `doubleValue`, `pee`/`poo` as
+`integerValue` `"0"`/`"1"` (not `booleanValue`, despite them being boolean-
+shaped) -- the document `name` path and `svt` `REQUEST_TIME`
+`updateTransforms` entry, and response status-code classification across
+the 2xx/401/400/403/other boundaries). All 9 pass via `monkeydo
+BabyDaybookTest.prg fenix7 -t` (43/43 total across `ConfigTest` +
+`StoreTest` + `TokenClientTest` + `FirestoreClientTest`). The commit HTTP
+round trip itself isn't covered by `(:test)` -- it needs a live network
+call -- so it will be exercised manually once `SyncQueue.mc` wires it up.
+Confirmed a normal build still succeeds with
+`FirestoreClient.mc`/`FirestoreClientTest.mc` present, and that
+`(:background)` annotations hold (no UI imports pulled into the module).
