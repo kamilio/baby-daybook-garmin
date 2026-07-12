@@ -13,11 +13,11 @@ module BottleConfirmViewTest {
     function testInitializePrefillsFromLastBottleMlElseDefault(logger as Test.Logger) as Boolean {
         Storage.clearValues();
         Store.setLastBottleMl(180);
-        var prefilledView = new BottleConfirmView();
+        var prefilledView = new BottleConfirmView(false);
         var prefilledOk = prefilledView.getAmountMl() == 180;
 
         Storage.clearValues();
-        var defaultView = new BottleConfirmView();
+        var defaultView = new BottleConfirmView(false);
         var defaultOk = defaultView.getAmountMl() == Config.getDefaultBottleMl();
 
         Storage.clearValues();
@@ -28,7 +28,7 @@ module BottleConfirmViewTest {
     function testIncrementClampsAtMax(logger as Test.Logger) as Boolean {
         Storage.clearValues();
         Store.setLastBottleMl(Config.getBottleMaxMl());
-        var view = new BottleConfirmView();
+        var view = new BottleConfirmView(false);
         Storage.clearValues();
 
         view.increment();
@@ -39,7 +39,7 @@ module BottleConfirmViewTest {
     function testDecrementBelowMinimumParksAtNoAmount(logger as Test.Logger) as Boolean {
         Storage.clearValues();
         Store.setLastBottleMl(Config.getBottleMinMl());
-        var view = new BottleConfirmView();
+        var view = new BottleConfirmView(false);
         Storage.clearValues();
 
         var atMinOk = view.getAmountMl() == Config.getBottleMinMl();
@@ -58,7 +58,7 @@ module BottleConfirmViewTest {
     function testIncrementFromNoAmountJumpsToMinimum(logger as Test.Logger) as Boolean {
         Storage.clearValues();
         Store.setLastBottleMl(Config.getBottleMinMl());
-        var view = new BottleConfirmView();
+        var view = new BottleConfirmView(false);
         Storage.clearValues();
 
         view.decrement();
@@ -74,7 +74,7 @@ module BottleConfirmViewTest {
     function testAmountTextFormatsMl(logger as Test.Logger) as Boolean {
         Storage.clearValues();
         Store.setLastBottleMl(150);
-        var view = new BottleConfirmView();
+        var view = new BottleConfirmView(false);
         Storage.clearValues();
 
         return view.amountText().equals("150 ml");
@@ -83,7 +83,7 @@ module BottleConfirmViewTest {
     (:test)
     function testHitTestingZonesAgreeWithComputedBounds(logger as Test.Logger) as Boolean {
         Storage.clearValues();
-        var view = new BottleConfirmView();
+        var view = new BottleConfirmView(false);
         Storage.clearValues();
 
         view.computeZoneBounds(260, 260);

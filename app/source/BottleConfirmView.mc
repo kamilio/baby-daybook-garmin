@@ -14,6 +14,7 @@ import Toybox.WatchUi;
 class BottleConfirmView extends WatchUi.View {
 
     var amountMl as Number?;
+    var exitOnConfirm as Boolean;
 
     var amountTop as Number = 0;
     var amountBottom as Number = 0;
@@ -21,8 +22,13 @@ class BottleConfirmView extends WatchUi.View {
     var plusLeft as Number = 0;
     var confirmTop as Number = 0;
 
-    function initialize() {
+    // exitOnConfirm is set when this view is the app's initial view (the
+    // Bottle complication-launch path, BabyDaybookApp.getInitialView()) --
+    // there's no home view underneath to pop back to, so BottleConfirmDelegate
+    // pushes SuccessView on top instead of popping this view first.
+    function initialize(exitOnConfirm as Boolean) {
         View.initialize();
+        self.exitOnConfirm = exitOnConfirm;
         var lastMl = Store.getLastBottleMl();
         amountMl = (lastMl != null) ? lastMl : Config.getDefaultBottleMl();
     }
@@ -258,18 +264,26 @@ class BottleConfirmDelegate extends WatchUi.BehaviorDelegate {
         }
     }
 
-    // Pops BottleConfirmView off the stack before recording, so the flow
-    // matches the diaper path: SuccessView ends up on top of HomeView, and
-    // its auto-dismiss pop lands back on the home screen instead of back on
-    // this confirm screen.
+    // Normal flow (view.exitOnConfirm == false): pops BottleConfirmView off
+    // the stack before recording, so SuccessView ends up on top of HomeView
+    // and its auto-dismiss pop lands back on the home screen instead of back
+    // on this confirm screen.
+    // Complication-launch flow (view.exitOnConfirm == true): this view *is*
+    // the app's only view, so popping it first would exit the app before
+    // SuccessView ever showed. Instead SuccessView is pushed on top of it,
+    // and its exitOnDismiss flag calls System.exit() directly on dismiss.
     function confirm() as Void {
         stopRepeat();
         var volume = view.getAmountMl();
         if (volume != null) {
             Store.setLastBottleMl(volume);
         }
-        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
-        RecordController.recordBottle(volume);
+        if (view.exitOnConfirm) {
+            RecordController.recordBottle(volume, true);
+        } else {
+            WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+            RecordController.recordBottle(volume, false);
+        }
     }
 
 }

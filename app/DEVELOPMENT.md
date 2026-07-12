@@ -584,3 +584,78 @@ builds cleanly across every device/background configuration, and that nothing
 in this change regresses the existing 80 tests. A real Complication
 Viewer / subscribing-watch-face pass is still recommended before treating
 this task's `test`/`commit` steps as fully closed.
+
+Wired up complication-launch routing in `BabyDaybookApp.mc`: `onStart()`
+reads `state[:launchedFromComplication]` (a `Lang.Number` -- confirmed
+against the bundled SDK's `Toybox/Application/AppBase.html` docs, which
+document it as "the complication index the app was launched from", present
+only when a watch face called `Complications.exitTo()` for one of this
+app's own published complications) into a new public instance var, and
+`getInitialView()` (which the docs confirm always runs after `onStart()`)
+branches on it:
+
+- Wet/Dirty (`ComplicationsPublisher.ID_WET`/`ID_DIRTY`) -> a new
+  `RecordController.recordDiaperInitialView()` records instantly and
+  returns `[SuccessView, SuccessDelegate]` directly as the initial view,
+  with `exitOnDismiss` set -- there's no home view to `WatchUi.pushView()`
+  onto yet at `getInitialView()` time, so the checkmark screen has to *be*
+  the initial view rather than be pushed onto one.
+- Bottle (`ID_BOTTLE`) -> `new BottleConfirmView(true)` as the initial view.
+  `BottleConfirmView`/`BottleConfirmDelegate` gained an `exitOnConfirm` flag
+  (constructor param, so the existing `new BottleConfirmView()` call sites
+  in `HomeDelegate`/`BottleConfirmViewTest` needed a `false` argument added):
+  the normal flow still pops `BottleConfirmView` before recording (so
+  `SuccessView`'s dismiss-pop lands on `HomeView`, unchanged from the
+  `bottle-confirm-view` task), but the complication-launch flow can't pop
+  first -- popping the app's only view exits it immediately, before
+  `SuccessView` ever shows -- so `confirm()` instead pushes `SuccessView`
+  (with `exitOnDismiss = true`) on top of `BottleConfirmView`, and the
+  `System.exit()` on dismiss happens without any further pop. `onBack()`
+  needed no change: popping the app's sole initial view already exits it,
+  which is exactly "BACK exits without saving" for this path too.
+- Anything else (no `:launchedFromComplication`, i.e. launcher/glance/
+  hotkey launches) falls through to `HomeView` unchanged.
+
+`RecordController.mc`'s shared `record()` helper now takes the
+`exitOnDismiss` flag directly (previously hardcoded `false`) and returns
+the constructed `SuccessView` instead of pushing it; the existing
+`recordDiaper()`/`recordBottle()` entry points wrap it in a `pushView()`
+push as before, and the new `recordDiaperInitialView()` wraps it in
+`asInitialView()` instead. `recordBottle()`'s signature gained the same
+`exitOnDismiss` parameter (its one caller, `BottleConfirmDelegate.confirm()`,
+now passes `true` or `false` depending on `view.exitOnConfirm`).
+
+Verified with 4 new `BabyDaybookAppTest` cases (constructing a
+`BabyDaybookApp` directly and setting the now-public
+`launchedFromComplication` field, since it's a plain instance var rather
+than something only reachable through `onStart()`'s `Dictionary` argument):
+Wet and Dirty each route to a `SuccessView` with `exitOnDismiss` and the
+right label, Bottle routes to a `BottleConfirmView` with `exitOnConfirm`,
+and `null` falls back to `HomeView`. These don't hit `WatchUi.pushView()`
+(the routed-to views are only *constructed and returned*, matching the
+existing `SuccessViewTest`/`BottleConfirmViewTest` pattern of constructing
+views directly outside a live view stack), so -- unlike
+`recordDiaper()`/`recordBottle()`'s own push step -- this routing logic is
+fully unit-testable. All 4 new cases pass, and the full suite (89/89 across
+every `*Test.mc` module) still passes, via `monkeydo BabyDaybookTest.prg
+fenix7 -t`. Confirmed a normal build succeeds for all three real device IDs
+(`fenix7`, `fenix7s`, `fenix7x`), that a type-check level 2 ("Informative")
+build is clean, and that `monkeydo BabyDaybook.prg fenix7` still launches
+without a new `CIQ_LOG.YML` crash entry (normal, non-complication launch).
+
+The live verification this task explicitly calls for -- tapping each of the
+three published complications on a subscribing watch face (or via the
+simulator's exitTo-equivalent) and confirming Wet/Dirty show the checkmark
+and auto-exit after ~2s while Bottle opens the stepper directly, CONFIRM
+shows the checkmark and exits, and BACK exits with nothing recorded -- was
+**not** driven live in this environment: same missing Screen Recording/
+Accessibility permission noted throughout this file (confirmed again here:
+`osascript`'s `System Events` can list processes but errors with "not
+allowed assistive access" when asking for the simulator process's windows).
+The "Simulator caveat" note already lived in this file's own
+[Glance launch mode](#glance-launch-mode) section from before this task
+started (the simulator defaults `Complications.exitTo` taps to glance-mode
+launch; set **Glance Launch Mode** to **Launch in Normal Mode** to test this
+routing for real). A real click-through of all three complication launch
+paths is still recommended before treating this task's `test`/`commit`
+steps as fully closed.

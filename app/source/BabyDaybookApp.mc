@@ -7,6 +7,13 @@ import Toybox.WatchUi;
 
 class BabyDaybookApp extends Application.AppBase {
 
+    // Set from onStart()'s state dictionary; read by getInitialView() (which
+    // runs after onStart() per AppBase's documented call order) to decide
+    // whether to route straight into a record/confirm flow instead of
+    // HomeView. Only meaningful in the foreground app -- the background
+    // process's onStart() also sets this, but never calls getInitialView().
+    var launchedFromComplication as Number?;
+
     (:background)
     function initialize() {
         AppBase.initialize();
@@ -20,6 +27,13 @@ class BabyDaybookApp extends Application.AppBase {
     function onStart(state as Dictionary?) as Void {
         registerBackgroundSync();
         ComplicationsPublisher.updateAll();
+
+        // :launchedFromComplication is the complication index (Bottle=0,
+        // Wet=1, Dirty=2 -- ComplicationsPublisher.ID_*) the app was
+        // launched from, present only when a watch face called
+        // Complications.exitTo() for one of this app's own complications.
+        var value = (state != null) ? state.get(:launchedFromComplication) : null;
+        launchedFromComplication = (value instanceof Number) ? value : null;
     }
 
     (:background)
@@ -57,7 +71,22 @@ class BabyDaybookApp extends Application.AppBase {
         return [ new BackgroundServiceDelegate() ];
     }
 
+    // Wet/Dirty -> record instantly and show only SuccessView (exits itself
+    // after the checkmark). Bottle -> open BottleConfirmView directly, since
+    // it's the one action that needs a confirm step before recording.
+    // Normal launches (launcher, glance, hotkey) have no
+    // :launchedFromComplication and fall through to HomeView as before.
     function getInitialView() as [Views] or [Views, InputDelegates] {
+        var complicationId = launchedFromComplication;
+        if (complicationId == ComplicationsPublisher.ID_WET) {
+            return RecordController.recordDiaperInitialView(Store.ACTION_WET);
+        } else if (complicationId == ComplicationsPublisher.ID_DIRTY) {
+            return RecordController.recordDiaperInitialView(Store.ACTION_DIRTY);
+        } else if (complicationId == ComplicationsPublisher.ID_BOTTLE) {
+            var bottleView = new BottleConfirmView(true);
+            return [ bottleView, new BottleConfirmDelegate(bottleView) ];
+        }
+
         var view = new HomeView();
         return [ view, new HomeDelegate(view) ];
     }

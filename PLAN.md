@@ -444,8 +444,8 @@ tasks:
         Mode" when testing; note this in DEVELOPMENT.md.
       - Verify all three complication launch paths in the simulator.
     status:
-      implement: open
-      test: open
+      implement: done
+      test: done
       commit: open
 
   - id: glance-view
