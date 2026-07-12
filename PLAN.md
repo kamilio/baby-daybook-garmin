@@ -357,9 +357,9 @@ tasks:
       Wire the home view's Bottle zone to push this view and verify both
       input modes in the simulator.
     status:
-      implement: open
-      test: open
-      commit: open
+      implement: done
+      test: done
+      commit: done
 
   - id: background-sync
     title: Configurable periodic background sync
