@@ -446,7 +446,7 @@ tasks:
     status:
       implement: done
       test: done
-      commit: open
+      commit: done
 
   - id: glance-view
     title: Summary glance
