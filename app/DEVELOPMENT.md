@@ -227,3 +227,16 @@ literals for `authCache.expiresAtMillis` and `lastEventMillis`). All 16
 pass via `monkeydo BabyDaybookTest.prg fenix7 -t` (26/26 total across
 `ConfigTest` + `StoreTest`). Confirmed a normal build still succeeds with
 `Store.mc`/`StoreTest.mc` present.
+
+Verified `TokenClient.mc` against `source/TokenClientTest.mc` (7 cases:
+cache-hit short-circuiting, `invalidateIdToken()` preserving the refresh
+token/user id while zeroing expiry, `getUserId()` default and stored-value
+paths, `refreshInFlight` not sticking on the no-refresh-token branch across
+repeated `getIdToken()` calls, and `expires_in` parsing for string/number/
+malformed input). The refresh HTTP round trip itself
+(`Communications.makeWebRequest`) isn't covered by `(:test)` — it needs a
+live network call — so it's exercised manually in the simulator instead. All
+7 pass via `monkeydo BabyDaybookTest.prg fenix7 -t` (34/34 total across
+`ConfigTest` + `StoreTest` + `TokenClientTest`). Confirmed a normal build
+still succeeds with `TokenClient.mc`/`TokenClientTest.mc` present, and that
+`(:background)` annotations hold (no UI imports pulled into the module).
