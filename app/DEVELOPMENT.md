@@ -47,6 +47,109 @@ openssl pkcs8 -topk8 -inform PEM -outform DER -nocrypt \
 Only `developer_key.der` is used for builds; `developer_key.pem` is the
 source key material, kept for regenerating the DER if needed.
 
+## Properties (secrets and tuning)
+
+`resources/properties.xml` declares the app's build-time properties;
+`resources/settings.xml` describes their editor UI (used by the simulator's
+settings dialog and by Garmin Express/Connect for *published* apps). This
+app is a personal sideload, so Garmin Connect never gets a chance to edit
+these settings — whatever is baked into `properties.xml` at build time is
+what the watch starts with. Runtime code (`source/Config.mc`) reads
+`Application.Properties`, but for `refreshToken` prefers a value cached in
+`Application.Storage` under the `authCache` key once one exists, since
+Firebase rotates that token after first use and the rotated value must win
+over the baked-in default.
+
+Properties:
+
+| id                    | type   | default | notes |
+|-----------------------|--------|---------|-------|
+| `refreshToken`        | string | `""`    | Firebase refresh token (~200 chars). Secret — masked as a password field in the simulator settings editor. |
+| `babyUid`              | string | `""`    | Baby UID from `baby-daybook babies list`. |
+| `syncIntervalMinutes` | number | `15`    | Background sync interval; runtime floor is 5 (`Config.SYNC_INTERVAL_MINUTES_FLOOR`), the Connect IQ temporal-event minimum. |
+| `defaultBottleMl`     | number | `120`   | Prefill amount when no bottle has been recorded yet. |
+| `bottleStepMl`        | number | `10`    | −/+ stepper increment on the bottle confirm screen. |
+| `bottleMinMl`         | number | `30`    | Stepping at/below this shows "— ml" (record without an amount). |
+| `bottleMaxMl`         | number | `300`   | Upper stepper bound. |
+
+### Setting real values before building
+
+Edit the defaults directly in `resources/properties.xml` before running
+`monkeyc`, e.g.:
+
+```xml
+<property id="refreshToken">AMf-vBx...</property>
+<property id="babyUid">abc123</property>
+```
+
+Get both values via the JS SDK (`baby-daybook-sdk`): `baby-daybook login
+apple` provisions `~/.config/baby-daybook/auth.json`, then
+`baby-daybook babies list --output json` prints the baby UID. Never commit
+real values — `properties.xml` holds a personal secret once filled in;
+keep it out of diffs you share, and restore it to the empty defaults
+before pushing if this repo is ever made non-private.
+
+**Gotcha confirmed by testing: rebuilding does not reset already-persisted
+properties.** Once this app (identified by its manifest UUID) has been
+installed and run anywhere — the simulator or a real watch — Connect IQ
+persists its property values to that device's own storage. A later
+`monkeyc` build with new `properties.xml` defaults only takes effect on a
+device/simulator that has never run this UUID before; on one that already
+has it installed, the *old* persisted values keep winning even after
+reinstalling the new `.prg`, because installing over an existing app updates
+the binary but not its already-persisted settings. Concretely: if you first
+build and run the placeholder (empty-string) app in the simulator while
+scaffolding, then later fill in the real `refreshToken`/`babyUid` and
+rebuild, the simulator will still report the *empty* placeholders until you
+clear the persisted settings — confirmed by rebuilding
+`Config.getSyncIntervalMinutes()`'s backing property with a new default and
+observing `Properties.getValue` still return the old one until the settings
+file was removed.
+
+Fix: before (re)installing a build with corrected property defaults onto a
+device/simulator that has run this app before, clear its persisted
+settings first:
+- **Simulator**: delete the app's `.SET` file under
+  `$TMPDIR/com.garmin.connectiq/GARMIN/APPS/SETTINGS/` (or use the
+  simulator menu's per-app "reset settings"/"remove app data" action if
+  present) before the next `monkeydo`.
+- **Real watch**: delete `/GARMIN/APPS/SETTINGS/<name>.SET` over USB/MTP (or
+  fully remove and reinstall the app) before copying the corrected `.prg`.
+
+This matters most for `refreshToken`/`babyUid`, since they're exactly the
+properties this project bakes in once and expects to be correct — a typo
+fixed only in `properties.xml` and rebuilt will *not* reach the watch until
+the stale persisted settings are cleared.
+
+### No-rebuild alternative: `.SET` file swap
+
+Because the refresh token expires or needs rotating occasionally, and
+because re-running `monkeyc` for a one-value change is slow, Connect IQ
+lets you change property values without rebuilding the `.prg`, by editing
+a `.SET` file and copying it to the watch:
+
+1. Launch the simulator (`connectiq &`) and load the built app
+   (`monkeydo BabyDaybook.prg fenix7`). Loading the app alone creates a
+   `.SET` file with all properties at their `properties.xml` defaults —
+   confirmed on macOS at
+   `$TMPDIR/com.garmin.connectiq/GARMIN/APPS/SETTINGS/BABYDAYBOOK.SET`
+   (the simulator's virtual device filesystem mirrors the real
+   `/GARMIN/...` layout under `$TMPDIR/com.garmin.connectiq/GARMIN/`; the
+   filename is the `.prg` name, uppercased, with a `.SET` extension).
+2. Open the simulator's settings editor for the running app (simulator
+   menu → **Settings**) and edit the values there — it uses the same
+   `resources/settings.xml` UI (titles, types, min/max, `maxLength`) — then
+   save; this rewrites the same `.SET` file in place.
+3. Copy that `.SET` file to `/GARMIN/APPS/SETTINGS/` on the watch over
+   USB/MTP, keeping the same filename as the installed `.prg` (e.g.
+   `BabyDaybook.SET` next to wherever `BabyDaybook.prg` was installed).
+   The watch picks it up on the next app launch — no reinstall needed.
+
+This only changes property values already declared in `settings.xml`; it
+cannot add new properties or change code. The `.SET` format is an
+undocumented binary struct dump — treat it as opaque and always produce it
+via the simulator's editor, not by hand.
+
 ## Build
 
 From `app/`, once `monkey.jungle` exists:
@@ -78,6 +181,25 @@ simulator's **Glance Launch Mode** to **Launch in Normal Mode**
 (simulator menu, per-app or global setting) so the app opens normally
 instead of into its glance.
 
+## Unit tests
+
+Connect IQ's native test framework compiles `(:test)`-annotated functions
+(e.g. `source/ConfigTest.mc`) only when built with `-t`; a normal build
+ignores them:
+
+```sh
+monkeyc -d fenix7 -f monkey.jungle -o bin/BabyDaybookTest.prg -y ../keys/developer_key.der -t
+connectiq &                                            # if not already running
+monkeydo bin/BabyDaybookTest.prg fenix7 -t              # runs every (:test) function
+monkeydo bin/BabyDaybookTest.prg fenix7 -t Module.testName   # runs just one
+```
+
+Tests share the simulator's persisted `Storage`/`Properties` state (the same
+mechanism as the "Gotcha" above), so tests that assert on `Storage` values
+should `Storage.clearValues()` at the start and end of the test, and tests
+that assert on baked-in `Properties` defaults are only meaningful right
+after a fresh install (no stale `.SET` file for this app).
+
 ## Verification performed
 
 Confirmed the toolchain end-to-end by building the SDK's bundled `Analog`
@@ -88,3 +210,11 @@ monkeyc -d fenix7 -f monkey.jungle -o Analog.prg -y ../keys/developer_key.der
 ```
 
 Result: `BUILD SUCCESSFUL`.
+
+Verified `Config.mc` against `source/ConfigTest.mc` (10 cases: refresh-token
+Storage-override precedence, malformed/empty Storage values falling back to
+the baked-in property, the sync-interval floor clamp at boundary values, and
+that bottle/babyUid getters never return `null`). All 10 pass via
+`monkeydo BabyDaybookTest.prg fenix7 -t`. Also confirmed a normal
+(non-`-t`) build still succeeds with `ConfigTest.mc` present in
+`source/`, i.e. test code doesn't leak into release builds.

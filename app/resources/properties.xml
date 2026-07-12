@@ -1,0 +1,22 @@
+<properties xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+
+    <!--
+        Baked in at build time (see ../DEVELOPMENT.md "Provisioning
+        properties"). Garmin Connect cannot edit a sideloaded app's
+        settings, so refreshToken/babyUid must already be valid at first
+        launch; the watch persists a rotated refreshToken to
+        Application.Storage afterwards (Config.mc prefers that over this
+        default).
+    -->
+    <property id="refreshToken" type="string"></property>
+    <property id="babyUid" type="string"></property>
+
+    <!-- Minutes between background sync flushes; runtime floor is 5 (Config.mc). -->
+    <property id="syncIntervalMinutes" type="number">15</property>
+
+    <property id="defaultBottleMl" type="number">120</property>
+    <property id="bottleStepMl" type="number">10</property>
+    <property id="bottleMinMl" type="number">30</property>
+    <property id="bottleMaxMl" type="number">300</property>
+
+</properties>

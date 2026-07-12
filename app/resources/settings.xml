@@ -1,0 +1,31 @@
+<settings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+
+    <setting propertyKey="@Properties.refreshToken" title="@Strings.RefreshTokenTitle">
+        <settingConfig type="password" maxLength="512" />
+    </setting>
+
+    <setting propertyKey="@Properties.babyUid" title="@Strings.BabyUidTitle">
+        <settingConfig type="alphaNumeric" maxLength="128" />
+    </setting>
+
+    <setting propertyKey="@Properties.syncIntervalMinutes" title="@Strings.SyncIntervalMinutesTitle">
+        <settingConfig type="numeric" min="5" />
+    </setting>
+
+    <setting propertyKey="@Properties.defaultBottleMl" title="@Strings.DefaultBottleMlTitle">
+        <settingConfig type="numeric" min="0" />
+    </setting>
+
+    <setting propertyKey="@Properties.bottleStepMl" title="@Strings.BottleStepMlTitle">
+        <settingConfig type="numeric" min="1" />
+    </setting>
+
+    <setting propertyKey="@Properties.bottleMinMl" title="@Strings.BottleMinMlTitle">
+        <settingConfig type="numeric" min="0" />
+    </setting>
+
+    <setting propertyKey="@Properties.bottleMaxMl" title="@Strings.BottleMaxMlTitle">
+        <settingConfig type="numeric" min="0" />
+    </setting>
+
+</settings>

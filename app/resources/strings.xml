@@ -1,4 +1,12 @@
 <strings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
     <string id="AppName">Baby Daybook</string>
     <string id="PlaceholderText">Baby Daybook</string>
+
+    <string id="RefreshTokenTitle">Firebase refresh token</string>
+    <string id="BabyUidTitle">Baby UID</string>
+    <string id="SyncIntervalMinutesTitle">Sync interval (minutes)</string>
+    <string id="DefaultBottleMlTitle">Default bottle amount (ml)</string>
+    <string id="BottleStepMlTitle">Bottle step (ml)</string>
+    <string id="BottleMinMlTitle">Bottle minimum (ml)</string>
+    <string id="BottleMaxMlTitle">Bottle maximum (ml)</string>
 </strings>
