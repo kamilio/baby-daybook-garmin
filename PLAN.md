@@ -327,8 +327,8 @@ tasks:
       in the simulator, including the offline case (simulator network off
       -> "Queued").
     status:
-      implement: open
-      test: open
+      implement: done
+      test: done
       commit: open
 
   - id: bottle-confirm-view

@@ -309,3 +309,41 @@ covered by `HomeViewTest.mc` above; `onTap`/`onNextPage`/`onPreviousPage`/
 by code review against the `WatchUi.BehaviorDelegate`/`ClickEvent` API).
 A real click-through pass (or a physical-device pass) is still recommended
 before treating this task's `test`/`commit` steps as fully closed.
+
+Verified `RecordController.mc`/`SuccessView.mc` against
+`source/RecordControllerTest.mc` + `source/SuccessViewTest.mc` (4 cases: the
+`recordDiaper`/`recordBottle` action-label formatting -- "Wet diaper" /
+"Dirty diaper" / "Bottle 120 ml" / "Bottle" -- and `SuccessView`'s 24h ->
+12h/AM-PM clock formatting and queue-membership `isSynced()` check). `record()`
+(shared by both entry points) enqueues via `SyncQueue.enqueue()`, which now
+returns the assigned queue id and keeps a caller-supplied `startMillis`
+instead of re-deriving its own, so the enqueued event, `Store.lastEventMillis`,
+and the time `SuccessView` displays are guaranteed to agree; this update to
+`SyncQueue.enqueue()`'s signature doesn't break any existing
+`SyncQueueTest.mc` case (none pre-supply `startMillis`). All 4 new cases
+pass, and the full suite (66/66 across all `*Test.mc` modules) still passes,
+via `monkeydo BabyDaybookTest.prg fenix7 -t`. Confirmed a normal build still
+succeeds with the two new files present, and that the app launches in the
+`fenix7` simulator via `monkeydo` without crashing.
+
+`record()`/`recordDiaper()`/`recordBottle()` themselves push `SuccessView`
+as their last step, and `SuccessView.onShow()` starts a live 2 s
+`Timer.Timer` and, on dismiss, calls `WatchUi.popView()` or `System.exit()`
+-- none of that is exercised by `(:test)`, consistent with this project's
+existing pattern of not unit-testing view-push/input-handler code (see the
+`HomeView`/`HomeDelegate` note above). The same environment constraint
+applies here: no Screen Recording/Accessibility permission, so the actual
+tap-to-record flow, the checkmark/label/status-line rendering, the
+"Synced" vs "Queued" transition, and the offline case (simulator network
+off -> "Queued" for the full 2 s) were **not** driven live in this
+environment. What *was* confirmed: the pure logic above (label formatting,
+clock formatting, queue-membership check), that `SyncQueue.enqueue()`'s
+new caller-supplied-`startMillis` behavior doesn't regress the existing
+offline/paused-for-token path (`SyncQueueTest.mc` still passes unchanged),
+and that `HomeDelegate` already wires `Wet`/`Dirty` taps to
+`RecordController.recordDiaper()` (from the earlier `home-view` task) with
+no further changes needed. A real click-through pass -- including toggling
+the simulator's network off before tapping Wet/Dirty to confirm "Queued"
+persists and then back on to confirm it flips to "Synced" -- is still
+recommended before treating this task's `test`/`commit` steps as fully
+closed.

@@ -78,12 +78,22 @@ module SyncQueue {
         return value;
     }
 
+    // Returns the assigned queue id (also the Firestore document id -- see
+    // FirestoreClient) so callers that need to track this specific item
+    // (RecordController's SuccessView "Synced"/"Queued" status) can find it
+    // again later. Keeps a caller-supplied "startMillis" if the event
+    // already carries one, rather than re-deriving its own "now" -- so a
+    // caller that also needs that same instant for something else (e.g.
+    // Store.lastEventMillis) is guaranteed to agree with what gets queued.
     (:background)
-    function enqueue(event as Dictionary) as Void {
+    function enqueue(event as Dictionary) as String {
         var queue = Store.getSyncQueue();
 
-        event.put("id", nextId());
-        event.put("startMillis", TimeUtil.nowEpochMillis());
+        var id = nextId();
+        event.put("id", id);
+        if (event.get("startMillis") == null) {
+            event.put("startMillis", TimeUtil.nowEpochMillis());
+        }
         event.put("attempts", 0);
         queue.add(event);
 
@@ -95,6 +105,7 @@ module SyncQueue {
         Store.setSyncQueue(queue);
         notifyChanged();
         flush();
+        return id;
     }
 
     (:background)
