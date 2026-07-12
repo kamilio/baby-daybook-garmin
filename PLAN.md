@@ -420,7 +420,7 @@ tasks:
     status:
       implement: done
       test: done
-      commit: open
+      commit: done
 
   - id: complication-launch-routing
     title: Route complication taps to instant record or bottle confirm
