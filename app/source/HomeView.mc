@@ -16,6 +16,12 @@ class HomeView extends WatchUi.View {
 
     var highlightZone as Number;
 
+    // "Shown once" per SyncQueue.consumeLastError()'s contract: re-read on
+    // every onShow() (including a return trip from SuccessView, since this
+    // same HomeView instance stays on the stack) so a permanent-failure
+    // banner surfaces exactly once, then clears itself on the next visit.
+    var hadLastError as Boolean = false;
+
     var zoneTop as Array<Number> = [0, 0, 0];
     var zoneBottom as Array<Number> = [0, 0, 0];
 
@@ -26,6 +32,7 @@ class HomeView extends WatchUi.View {
 
     function onShow() as Void {
         SyncQueue.setOnChanged(new Lang.Method(self, :onQueueChanged));
+        hadLastError = SyncQueue.consumeLastError();
     }
 
     function onUpdate(dc as Dc) as Void {
@@ -185,13 +192,30 @@ class HomeView extends WatchUi.View {
         dc.setPenWidth(1);
     }
 
-    // Pending-sync badge / check-token state, drawn near the bottom edge.
+    // Pending-sync badge / check-token / queue-full / last-error state, drawn
+    // near the bottom edge. needsToken (blocks every future flush until
+    // fixed) takes priority over the foreground-only queue-full warning,
+    // which takes priority over the one-shot permanent-failure banner --
+    // each condition replaces the plain pending-count badge rather than
+    // stacking with it.
     function drawSyncStatus(dc as Dc, width as Number, height as Number) as Void {
         var y = height - (height * 0.045).toNumber();
 
         if (SyncQueue.needsToken()) {
             dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
             dc.drawText(width / 2, y, Graphics.FONT_XTINY, "check token", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            return;
+        }
+
+        if (SyncQueue.isQueueOverflowed()) {
+            dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(width / 2, y, Graphics.FONT_XTINY, "queue full", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            return;
+        }
+
+        if (hadLastError) {
+            dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(width / 2, y, Graphics.FONT_XTINY, "sync error", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
             return;
         }
 

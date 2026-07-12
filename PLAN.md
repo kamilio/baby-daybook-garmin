@@ -503,8 +503,8 @@ tasks:
       Record the run results (pass/fail per area, bugs fixed) in
       baby-daybook-garmin/docs/simulator-testing.md.
     status:
-      test: open
-      commit: open
+      test: done
+      commit: done
 
   - id: install-docs
     title: Provisioning and sideload installation guide

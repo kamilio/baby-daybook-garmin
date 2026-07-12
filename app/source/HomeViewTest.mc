@@ -124,4 +124,25 @@ module HomeViewTest {
         return wrapsBackward && wrapsForward && advancesToWet;
     }
 
+    // Regression test: SyncQueue.consumeLastError()/isQueueOverflowed() were
+    // set by SyncQueue but never read by any view, so a permanent commit
+    // failure or a 100-item queue overflow was invisible to the user forever.
+    // onShow() must surface the one-shot last-error flag exactly once.
+    (:test)
+    function testOnShowConsumesLastErrorExactlyOnce(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        Store.setQueueLastError(true);
+
+        var firstView = new HomeView();
+        firstView.onShow();
+        var firstShowHadError = firstView.hadLastError;
+
+        var secondView = new HomeView();
+        secondView.onShow();
+        var secondShowHadError = secondView.hadLastError;
+
+        Storage.clearValues();
+        return firstShowHadError && !secondShowHadError;
+    }
+
 }
