@@ -64,6 +64,25 @@ module StoreTest {
     }
 
     (:test)
+    function testQueueStatusFlagsDefaultToFalse(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        var needsToken = Store.getQueueNeedsToken();
+        var lastError = Store.getQueueLastError();
+        return !needsToken && !lastError;
+    }
+
+    (:test)
+    function testQueueStatusFlagsRoundTripIndependently(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        Store.setQueueNeedsToken(true);
+        var needsTokenOnly = Store.getQueueNeedsToken() && !Store.getQueueLastError();
+        Store.setQueueLastError(true);
+        var bothSet = Store.getQueueNeedsToken() && Store.getQueueLastError();
+        Storage.clearValues();
+        return needsTokenOnly && bothSet;
+    }
+
+    (:test)
     function testLastEventMillisReturnsNullWhenMissing(logger as Test.Logger) as Boolean {
         Storage.clearValues();
         return Store.getLastEventMillis(Store.ACTION_BOTTLE) == null;

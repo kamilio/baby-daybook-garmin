@@ -15,6 +15,7 @@ module Store {
 
     const KEY_AUTH_CACHE = "authCache";
     const KEY_SYNC_QUEUE = "syncQueue";
+    const KEY_QUEUE_STATUS = "queueStatus";
     const KEY_LAST_EVENT_MILLIS = "lastEventMillis";
     const KEY_LAST_BOTTLE_ML = "lastBottleMl";
     const KEY_LAST_ACTION = "lastAction";
@@ -87,6 +88,48 @@ module Store {
     (:background)
     function setSyncQueue(queue as Array) as Void {
         Storage.setValue(KEY_SYNC_QUEUE, queue);
+    }
+
+    // --- queueStatus: { needsToken, lastError } -- set by SyncQueue, read by
+    // the UI. Persisted (not held in module memory) because the background
+    // sync process can be the one that discovers a dead refresh token or a
+    // permanent rejection, and the foreground UI needs to see that after the
+    // process that set it has already exited. ---
+
+    (:background)
+    function getQueueNeedsToken() as Boolean {
+        var value = getQueueStatusField("needsToken");
+        return (value instanceof Boolean) ? value : false;
+    }
+
+    (:background)
+    function setQueueNeedsToken(value as Boolean) as Void {
+        setQueueStatusField("needsToken", value);
+    }
+
+    (:background)
+    function getQueueLastError() as Boolean {
+        var value = getQueueStatusField("lastError");
+        return (value instanceof Boolean) ? value : false;
+    }
+
+    (:background)
+    function setQueueLastError(value as Boolean) as Void {
+        setQueueStatusField("lastError", value);
+    }
+
+    (:background)
+    function getQueueStatusField(field as String) as Object? {
+        var raw = Storage.getValue(KEY_QUEUE_STATUS);
+        return (raw instanceof Dictionary) ? raw.get(field) : null;
+    }
+
+    (:background)
+    function setQueueStatusField(field as String, value as Boolean) as Void {
+        var raw = Storage.getValue(KEY_QUEUE_STATUS);
+        var updated = (raw instanceof Dictionary) ? raw : {};
+        updated.put(field, value);
+        Storage.setValue(KEY_QUEUE_STATUS, updated);
     }
 
     // --- lastEventMillis: dictionary keyed by "bottle" / "wet" / "dirty" ---

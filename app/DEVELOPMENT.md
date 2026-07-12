@@ -255,3 +255,28 @@ call -- so it will be exercised manually once `SyncQueue.mc` wires it up.
 Confirmed a normal build still succeeds with
 `FirestoreClient.mc`/`FirestoreClientTest.mc` present, and that
 `(:background)` annotations hold (no UI imports pulled into the module).
+
+Verified `SyncQueue.mc` against `source/SyncQueueTest.mc` (11 cases:
+`enqueue()` stamping `id`/`startMillis`/`attempts` and appending to the
+Storage-backed queue, the 100-item cap dropping the oldest entry and
+setting the overflow flag, `flush()` no-op'ing while `Store.queueStatus`
+reports paused, the bottle/wet/dirty action mapping used for
+`lastEventMillis`, the shared by-id queue helpers
+(`findItemById`/`removeItemById`/`incrementAttemptsById`), and the
+`lastError`/`needsToken` flags each round-tripping through `Store.mc`).
+With Storage cleared and no refresh token configured, `TokenClient`'s
+refresh path takes its synchronous no-web-request branch (see
+`TokenClientTest`), so `enqueue()` -> `flush()` never reaches the network in
+these tests -- it always settles into the paused-for-token state, which is
+what most of the assertions check. The commit/token HTTP round trips
+themselves aren't covered by `(:test)`; exercising the full online flush,
+the one-retry-after-401 path, and the background-shared-queue race is left
+to the simulator once `RecordController`/background sync wire this module
+up. All 11 pass via `monkeydo BabyDaybookTest.prg fenix7 -t` (56/56 total
+across `ConfigTest` + `StoreTest` + `TokenClientTest` +
+`FirestoreClientTest` + `SyncQueueTest`, the last 2 of which are new
+`Store.queueStatus` cases added alongside `SyncQueue.mc`). Confirmed a
+normal build still succeeds with `SyncQueue.mc`/`SyncQueueTest.mc` present,
+`(:background)` annotations hold, and that `TokenClient.mc`/
+`FirestoreClient.mc` still build and pass after their `nowEpochMillis()`
+duplication was extracted into a new shared `TimeUtil.mc` module.

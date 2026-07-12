@@ -1,6 +1,5 @@
 import Toybox.Communications;
 import Toybox.Lang;
-import Toybox.Time;
 
 // Firestore documents:commit client for the single write this app makes:
 // upserting babyData/babyUid_<BABY>/dailyActions/<uid> for a bottle or
@@ -36,7 +35,7 @@ module FirestoreClient {
     function commitEvent(event as Dictionary, idToken as String, callback as Method(status as Number) as Void) as Void {
         pendingCallback = callback;
 
-        var body = buildRequestBody(event, TokenClient.getUserId(), Config.getBabyUid(), nowEpochMillis());
+        var body = buildRequestBody(event, TokenClient.getUserId(), Config.getBabyUid(), TimeUtil.nowEpochMillis());
         var options = {
             :method => Communications.HTTP_REQUEST_METHOD_POST,
             :headers => {
@@ -130,11 +129,6 @@ module FirestoreClient {
     (:background)
     function boolToInt(value as Boolean) as Number {
         return value ? 1 : 0;
-    }
-
-    (:background)
-    function nowEpochMillis() as Long {
-        return (Time.now().value() as Long) * 1000L;
     }
 
 }

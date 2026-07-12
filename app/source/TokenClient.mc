@@ -1,6 +1,5 @@
 import Toybox.Communications;
 import Toybox.Lang;
-import Toybox.Time;
 
 // Firebase ID-token lifecycle over the securetoken.googleapis.com REST
 // endpoint. Caches the ID token in Store.authCache and only refreshes once
@@ -36,7 +35,7 @@ module TokenClient {
         var cache = Store.getAuthCache();
         var cachedIdToken = cache.get("idToken") as String;
         var cachedExpiresAtMillis = cache.get("expiresAtMillis") as Numeric;
-        if (cachedIdToken.length() > 0 && (cachedExpiresAtMillis - nowEpochMillis()) > TOKEN_EXPIRY_SKEW_MILLIS) {
+        if (cachedIdToken.length() > 0 && (cachedExpiresAtMillis - TimeUtil.nowEpochMillis()) > TOKEN_EXPIRY_SKEW_MILLIS) {
             callback.invoke(cachedIdToken, null);
             return;
         }
@@ -102,7 +101,7 @@ module TokenClient {
             var refreshToken = data.get("refresh_token");
             var userId = data.get("user_id");
             if (idToken instanceof String && refreshToken instanceof String && userId instanceof String) {
-                var expiresAtMillis = nowEpochMillis() + (parseExpiresInSeconds(data.get("expires_in")) * 1000L);
+                var expiresAtMillis = TimeUtil.nowEpochMillis() + (parseExpiresInSeconds(data.get("expires_in")) * 1000L);
                 Store.setAuthCache(idToken, expiresAtMillis, userId, refreshToken);
                 finishPending(idToken, null);
                 return;
@@ -139,11 +138,6 @@ module TokenClient {
         for (var i = 0; i < callbacks.size(); i++) {
             callbacks[i].invoke(idToken, error);
         }
-    }
-
-    (:background)
-    function nowEpochMillis() as Long {
-        return (Time.now().value() as Long) * 1000L;
     }
 
 }
