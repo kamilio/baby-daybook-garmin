@@ -218,3 +218,12 @@ that bottle/babyUid getters never return `null`). All 10 pass via
 `monkeydo BabyDaybookTest.prg fenix7 -t`. Also confirmed a normal
 (non-`-t`) build still succeeds with `ConfigTest.mc` present in
 `source/`, i.e. test code doesn't leak into release builds.
+
+Verified `Store.mc` against `source/StoreTest.mc` (16 cases covering every
+accessor: safe defaults on empty Storage, malformed/wrong-type stored
+values falling back to those defaults, and get/set round-trips — including
+epoch-millisecond values above the 32-bit `Number` range via `Long`
+literals for `authCache.expiresAtMillis` and `lastEventMillis`). All 16
+pass via `monkeydo BabyDaybookTest.prg fenix7 -t` (26/26 total across
+`ConfigTest` + `StoreTest`). Confirmed a normal build still succeeds with
+`Store.mc`/`StoreTest.mc` present.
