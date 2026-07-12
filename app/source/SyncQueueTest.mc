@@ -131,4 +131,44 @@ module SyncQueueTest {
         return count == 2;
     }
 
+    (:test)
+    function testIsFlushingFalseWhenNoCommitInFlight(logger as Test.Logger) as Boolean {
+        // No pending refresh token configured, so enqueue()'s flush() settles
+        // synchronously into the paused-for-token state (see file header)
+        // rather than leaving a commit in flight.
+        Storage.clearValues();
+        SyncQueue.enqueue({ "type" => "bottle" });
+        var flushing = SyncQueue.isFlushing();
+        Storage.clearValues();
+        return !flushing;
+    }
+
+    // Regression test for the background-service wall-clock budget: flush()
+    // must refuse to dispatch a new item once the caller's gate says no,
+    // rather than starting it and only being told to stop afterwards.
+    // Without the flushGate check, this would reach TokenClient (calling
+    // back synchronously here per the no-refresh-token path -- see file
+    // header) and settle into paused-for-token, which the assertions below
+    // would also catch: needsToken would flip true and the queue item would
+    // still be attempted.
+    (:test)
+    function testFlushGateBlocksDispatchOfNewItem(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        Store.setSyncQueue([{ "id" => "a", "type" => "bottle", "startMillis" => 1l, "attempts" => 0 }]);
+        SyncQueue.setFlushGate(new Lang.Method(SyncQueueTest, :denyGate));
+        SyncQueue.flush();
+        var queue = Store.getSyncQueue();
+        var flushing = SyncQueue.isFlushing();
+        var neededToken = Store.getQueueNeedsToken();
+        SyncQueue.setFlushGate(null);
+        Storage.clearValues();
+        return queue.size() == 1 && queue[0].get("id").equals("a") && !flushing && !neededToken;
+    }
+
+    // Plain helper (not (:test) -- the harness would otherwise pick it up
+    // as its own test case and fail invoking it with a logger argument).
+    function denyGate() as Boolean {
+        return false;
+    }
+
 }

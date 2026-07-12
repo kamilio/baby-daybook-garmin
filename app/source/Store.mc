@@ -19,6 +19,7 @@ module Store {
     const KEY_LAST_EVENT_MILLIS = "lastEventMillis";
     const KEY_LAST_BOTTLE_ML = "lastBottleMl";
     const KEY_LAST_ACTION = "lastAction";
+    const KEY_REGISTERED_SYNC_INTERVAL_MINUTES = "registeredSyncIntervalMinutes";
 
     const ACTION_BOTTLE = "bottle";
     const ACTION_WET = "wet";
@@ -193,6 +194,25 @@ module Store {
     (:background)
     function setLastAction(action as String) as Void {
         Storage.setValue(KEY_LAST_ACTION, action);
+    }
+
+    // --- registeredSyncIntervalMinutes: the interval last passed to
+    // Background.registerForTemporalEvent(), so BabyDaybookApp can tell
+    // "config changed, must re-register" apart from "already registered
+    // for this interval, skip" without re-deriving it from the opaque
+    // Moment Background.getTemporalEventRegisteredTime() returns. -1
+    // default never matches a real interval, so the first app start always
+    // registers. ---
+
+    (:background)
+    function getRegisteredSyncIntervalMinutes() as Number {
+        var value = Storage.getValue(KEY_REGISTERED_SYNC_INTERVAL_MINUTES);
+        return (value instanceof Number) ? value : -1;
+    }
+
+    (:background)
+    function setRegisteredSyncIntervalMinutes(minutes as Number) as Void {
+        Storage.setValue(KEY_REGISTERED_SYNC_INTERVAL_MINUTES, minutes);
     }
 
 }

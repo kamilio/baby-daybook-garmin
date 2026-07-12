@@ -168,4 +168,19 @@ module StoreTest {
         return value.equals(Store.ACTION_WET);
     }
 
+    (:test)
+    function testRegisteredSyncIntervalMinutesDefaultsToNegativeOne(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        return Store.getRegisteredSyncIntervalMinutes() == -1;
+    }
+
+    (:test)
+    function testRegisteredSyncIntervalMinutesRoundTrips(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        Store.setRegisteredSyncIntervalMinutes(15);
+        var value = Store.getRegisteredSyncIntervalMinutes();
+        Storage.clearValues();
+        return value == 15;
+    }
+
 }

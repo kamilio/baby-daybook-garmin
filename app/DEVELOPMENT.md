@@ -393,3 +393,119 @@ BabyDaybook.prg fenix7` launches and runs without crashing. A real
 click-through pass -- both input modes, per the task's own instruction --
 is still recommended before treating this task's `test`/`commit` steps as
 fully closed.
+
+Added `source/BackgroundService.mc` (`BackgroundServiceDelegate`, a
+`System.ServiceDelegate`) plus the registration wiring in
+`BabyDaybookApp.mc` (`getServiceDelegate()`, and `onStart()` calling
+`registerBackgroundSync()`). `Config.mc` is now fully `(:background)`-safe
+(every function annotated, matching `Store.mc`'s existing pattern), which
+was the one module in the background dependency chain
+(`Store`/`Config`/`TokenClient`/`FirestoreClient`/`SyncQueue`) not yet
+annotated.
+
+`SyncQueue.flush()` already self-chains from item to item via
+`advance()` and stops at the first failure (paused-for-token or
+retryable), so `BackgroundServiceDelegate.onTemporalEvent()` doesn't need
+its own multi-item drain loop -- it just calls `SyncQueue.flush()` once and
+waits for the chain to settle. Detecting "settled" (so `Background.exit()`
+fires as soon as there's genuinely nothing left in flight, rather than
+holding the process open for the full budget) needed one small addition to
+`SyncQueue.mc`: a `isFlushing()` accessor (`pendingId != null`), and
+reordering `flush(); notifyChanged();` (was `notifyChanged(); flush();`) in
+`enqueue()` and `advance()` so `isFlushing()` is accurate by the time any
+`onChanged` callback observes it -- otherwise a callback firing mid-`advance()`
+would see the momentary `pendingId == null` between finishing one item and
+starting the next, and could exit one item early. The reorder doesn't
+change observable behavior for the existing `onChanged` consumers
+(`HomeView`/`SuccessView` just call `WatchUi.requestUpdate()`, order-
+independent), and the full existing `SyncQueueTest.mc` suite still passes
+unchanged.
+
+Registration tracks its own "last registered interval" in a new
+`Store.registeredSyncIntervalMinutes` key rather than trying to compare
+against `Background.getTemporalEventRegisteredTime()` directly --
+that API only returns the next scheduled `Moment`, not the interval that
+produced it, so it can't be diffed against `Config.getSyncIntervalMinutes()`
+on its own. `registerBackgroundSync()` treats
+`getTemporalEventRegisteredTime() == null` (nothing registered with the
+platform at all -- first run, or a stale Store value surviving a
+registration that was separately cleared) as always requiring
+registration, and otherwise re-registers only when the configured interval
+differs from what's stored. The decision itself is split into a pure
+`shouldRegisterSyncInterval(minutes, registeredMinutes, hasRegistration)`
+method, tested directly (`BabyDaybookAppTest.mc`, 4 cases) without touching
+the real `Background` API.
+
+Verified: a normal (non-`-t`) build succeeds with `BackgroundService.mc`
+present and the background dependency chain's new `(:background)`
+annotations in place, and `monkeydo BabyDaybook.prg fenix7` still launches.
+Full unit suite passes at 79/79 (`monkeydo BabyDaybookTest.prg fenix7 -t`),
+including the 4 new `BabyDaybookAppTest` cases and 1 new
+`SyncQueueTest.testIsFlushingFalseWhenNoCommitInFlight` case.
+
+The live end-to-end path -- tapping a diaper zone with the simulator's
+network toggled off so the record queues instead of syncing, then using
+the simulator's **Simulation → Background Events → Temporal Event** menu
+item (the only way to force a temporal event; confirmed against the SDK's
+own `doc/docs/Core_Topics/Backgrounding.html`, which documents no CLI
+equivalent) to fire `onTemporalEvent()` and confirm the queue drains and
+`Store.lastEventMillis` updates -- was **not** driven live in this
+environment, same Screen Recording/Accessibility constraint as the tasks
+above (confirmed empirically: `osascript`/System Events GUI scripting
+against the simulator process fails with "not allowed assistive access").
+A real click-through pass covering that offline-enqueue-then-fire sequence
+is still recommended before treating this task's `test`/`commit` steps as
+fully closed.
+
+### Follow-up: budget check ran one item too late
+
+Auditing the drain chain by hand (since the live simulator click-through
+above is blocked) turned up a real bug in the wall-clock budget: it never
+actually stopped the flush chain from *starting* a new item once the
+27 s budget was gone -- only from continuing to hold the process open
+afterwards.
+
+`TokenClient.getIdToken()` answers synchronously whenever the cached ID
+token is still valid (`TokenClient.mc`, the `cachedIdToken.length() > 0 &&
+... > TOKEN_EXPIRY_SKEW_MILLIS` branch) -- the common case for a
+multi-item background drain, since one ID token covers an hour. That means
+`SyncQueue.advance() -> flush() -> requestToken() -> onToken()` (all
+synchronous) reaches `FirestoreClient.commitEvent()` -- which *does* start
+a real, asynchronous `makeWebRequest` -- all within the same call stack as
+the *previous* item finishing. Only after `flush()` returns does
+`advance()` call `notifyChanged()`, which is what drives
+`BackgroundServiceDelegate.checkSettled()`'s budget check. So by the time
+that check ran, the next item's commit had already been dispatched: an
+over-budget result didn't stop that request from starting, it just made
+`finish()` call `Background.exit()` while it was still in flight --
+abandoning a request that had just gone out over the radio, exactly the
+"killed mid-request" outcome the budget was meant to avoid, except
+self-inflicted instead of OS-inflicted.
+
+Fix: added `SyncQueue.setFlushGate(gate as Method?)` -- an optional
+predicate consulted at the top of `flush()`, before it sets `pendingId`
+or calls `requestToken()`. `BackgroundServiceDelegate.onTemporalEvent()`
+sets it to `hasBudget()` (`elapsedMillis() < WALL_CLOCK_BUDGET_MILLIS`)
+and clears it in `finish()`; the foreground app never sets it, so
+`flush()` behaves exactly as before there (`flushGate == null` always
+dispatches). With the gate in place, once the budget is gone `flush()`
+returns without touching `TokenClient`/`FirestoreClient` at all, so
+`isFlushing()` is already `false` by the time `checkSettled()` runs and
+`finish()` only ever happens between items, never mid-request. Covered by
+`SyncQueueTest.testFlushGateBlocksDispatchOfNewItem`, which sets a
+gate that always denies and asserts the queued item is untouched and
+`needsToken` never flips.
+
+Verified after the fix: full unit suite passes at 80/80 (`monkeydo
+BabyDaybookTest.prg fenix7 -t`), a normal build still succeeds
+(`monkeyc ... -o bin/BabyDaybook.prg`), and a build at type-check level 2
+(`-l 2`, "Informative" -- the level the SDK's Backgrounding doc says is
+needed to catch a `(:background)`-scope leak) is also clean, confirming
+the background dependency chain (`Store`/`Config`/`TokenClient`/
+`FirestoreClient`/`SyncQueue`/`BackgroundService`/`BabyDaybookApp`) still
+has no accidental UI reference. (Level 3, "Strict", reports a long list of
+pre-existing untyped/`PolyType` findings across the whole codebase,
+unrelated to this task -- the project isn't built at that level normally.)
+The live GUI click-through in the simulator remains blocked in this
+environment for the same accessibility-permission reason noted above;
+still recommended before closing this task's `test`/`commit` steps.

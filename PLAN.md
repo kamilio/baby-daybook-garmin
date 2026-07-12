@@ -391,10 +391,10 @@ tasks:
         enqueue offline, fire the background event, confirm the queue
         drains and lastEventMillis updates.
     status:
-      implement: open
-      refactor: open
-      test: open
-      commit: open
+      implement: done
+      refactor: done
+      test: done
+      commit: done
 
   - id: complications-publish
     title: Publish per-action complications with time since last event

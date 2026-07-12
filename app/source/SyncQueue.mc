@@ -43,6 +43,25 @@ module SyncQueue {
         onChanged = callback;
     }
 
+    // Optional pre-dispatch check consulted at the top of flush(), before a
+    // new item's commit is started -- not just before flush() is called.
+    // Needed because TokenClient.getIdToken() calls its callback
+    // synchronously on a cache hit (the common case for a multi-item
+    // background drain, since one ID token covers an hour), so flush() ->
+    // onToken() -> FirestoreClient.commitEvent() can dispatch a brand-new
+    // network request in the same call stack as the previous item's
+    // completion, before any caller gets a chance to check a clock. Null
+    // (the foreground default) always allows dispatch. The background
+    // service uses this to stop starting new items once its wall-clock
+    // budget is gone, rather than aborting one already in flight.
+    (:background)
+    var flushGate as Method? = null;
+
+    (:background)
+    function setFlushGate(gate as Method?) as Void {
+        flushGate = gate;
+    }
+
     (:background)
     function notifyChanged() as Void {
         if (onChanged != null) {
@@ -58,6 +77,18 @@ module SyncQueue {
     (:background)
     function isQueueOverflowed() as Boolean {
         return queueOverflowed;
+    }
+
+    // Whether a commit is currently in flight (pendingId != null). Exposed
+    // so a caller driving its own lifecycle around the flush chain (the
+    // background service, deciding when it's safe to call Background.exit())
+    // can tell "stopped because nothing more will happen without another
+    // trigger" apart from "still working, wait for the next onChanged".
+    // Accurate only because notifyChanged() below always fires after
+    // pendingId has settled to its next value -- see enqueue()/advance().
+    (:background)
+    function isFlushing() as Boolean {
+        return pendingId != null;
     }
 
     // Persisted (not in-memory): the background process can be the one that
@@ -103,8 +134,10 @@ module SyncQueue {
         }
 
         Store.setSyncQueue(queue);
-        notifyChanged();
+        // flush() before notifyChanged() so isFlushing() is accurate by the
+        // time any onChanged callback runs.
         flush();
+        notifyChanged();
         return id;
     }
 
@@ -115,6 +148,9 @@ module SyncQueue {
         }
         var queue = Store.getSyncQueue();
         if (queue.size() == 0) {
+            return;
+        }
+        if (flushGate != null && !(flushGate.invoke() as Boolean)) {
             return;
         }
 
@@ -210,13 +246,15 @@ module SyncQueue {
     }
 
     // Ends this flush cycle after an item was removed (committed or
-    // permanently dropped) and immediately tries the next one.
+    // permanently dropped) and immediately tries the next one. flush()
+    // before notifyChanged() so isFlushing() reflects whether that next
+    // item actually started, not the momentary null between items.
     (:background)
     function advance() as Void {
         pendingId = null;
         pendingRetried = false;
-        notifyChanged();
         flush();
+        notifyChanged();
     }
 
     (:background)
