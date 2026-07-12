@@ -1,0 +1,33 @@
+<complications xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+
+    <!--
+        Ids must match ComplicationsPublisher.ID_* (source/ComplicationsPublisher.mc)
+        and the complication-launch-routing task's Bottle=0/Wet=1/Dirty=2
+        mapping: keep them stable across builds, per the resource docs.
+        access="public" (rather than "protected"/"private") so any
+        subscribing CIQ watch face can display these, not just apps signed
+        with this project's own developer key; that requires the icon to be
+        an svg (already the case for all three).
+    -->
+    <complication id="0" access="public"
+                  longLabel="@Strings.BottleComplicationLongLabel"
+                  shortLabel="@Strings.ComplicationPendingShortLabel"
+                  icon="@Drawables.BottleComplicationIcon">
+        <faceIt defaultText="@Strings.BottleComplicationLongLabel" />
+    </complication>
+
+    <complication id="1" access="public"
+                  longLabel="@Strings.WetComplicationLongLabel"
+                  shortLabel="@Strings.ComplicationPendingShortLabel"
+                  icon="@Drawables.WetComplicationIcon">
+        <faceIt defaultText="@Strings.WetComplicationLongLabel" />
+    </complication>
+
+    <complication id="2" access="public"
+                  longLabel="@Strings.DirtyComplicationLongLabel"
+                  shortLabel="@Strings.ComplicationPendingShortLabel"
+                  icon="@Drawables.DirtyComplicationIcon">
+        <faceIt defaultText="@Strings.DirtyComplicationLongLabel" />
+    </complication>
+
+</complications>

@@ -19,6 +19,7 @@ class BabyDaybookApp extends Application.AppBase {
     (:background)
     function onStart(state as Dictionary?) as Void {
         registerBackgroundSync();
+        ComplicationsPublisher.updateAll();
     }
 
     (:background)

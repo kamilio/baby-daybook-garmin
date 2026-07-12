@@ -1,3 +1,9 @@
 <drawables xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
     <bitmap id="LauncherIcon" filename="launcher_icon.svg" dithering="none" />
+
+    <!-- Complication icons (resources/complications.xml): svg required
+         since those complications are published with access="public". -->
+    <bitmap id="BottleComplicationIcon" filename="bottle_complication_icon.svg" dithering="none" />
+    <bitmap id="WetComplicationIcon" filename="wet_complication_icon.svg" dithering="none" />
+    <bitmap id="DirtyComplicationIcon" filename="dirty_complication_icon.svg" dithering="none" />
 </drawables>

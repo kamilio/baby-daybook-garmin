@@ -181,6 +181,30 @@ simulator's **Glance Launch Mode** to **Launch in Normal Mode**
 (simulator menu, per-app or global setting) so the app opens normally
 instead of into its glance.
 
+### Testing published complications
+
+This app publishes three `Toybox.Complications` complications (Bottle=0,
+Wet=1, Dirty=2 — `resources/complications.xml`, updated by
+`source/ComplicationsPublisher.mc`). **Known platform limit: only CIQ watch
+faces that themselves subscribe to complications can display them — Garmin's
+stock/pre-installed watch faces cannot show a third-party app's CIQ
+complications.** To actually see the published Bottle/Wet/Dirty values
+rendered on a watch face (in the simulator or on the real device), install a
+CIQ watch face that maps arbitrary/CIQ complications (a "configurable"
+watch face with a free complication slot; the SDK's own `ConfigurableWatchFace`
+sample is one example of the mechanism, though it doesn't ship a UI for
+picking a third-party app's complication by hand — a store face built for
+that is what you actually want) and assign one of its complication slots to
+this app's Bottle/Wet/Dirty complication.
+
+Without such a face, the simulator's own **Complication Viewer** (in the
+simulator's menu bar, next to the navigation/data-field inspectors) lists
+every complication currently published by the running app together with its
+live `value`/`shortLabel` — use it to confirm `ComplicationsPublisher` is
+publishing the right values (e.g. "45m", "2h", "—") without needing a
+subscribing face at all. It's the fastest way to verify a publish call
+actually landed after a record, an app start, or a fired temporal event.
+
 ## Unit tests
 
 Connect IQ's native test framework compiles `(:test)`-annotated functions
@@ -509,3 +533,54 @@ unrelated to this task -- the project isn't built at that level normally.)
 The live GUI click-through in the simulator remains blocked in this
 environment for the same accessibility-permission reason noted above;
 still recommended before closing this task's `test`/`commit` steps.
+
+Added `source/ComplicationsPublisher.mc` (`(:background)`-safe, no UI
+imports) publishing the app's three complications --
+`resources/complications.xml` defines ids 0 (Bottle) / 1 (Wet) / 2 (Dirty),
+each `access="public"` with an svg icon (`resources/*_complication_icon.svg`,
+new `Drawables.*ComplicationIcon` entries) and a static `longLabel`
+("Last bottle" etc., only settable in the resource, not at runtime).
+`ComplicationsPublisher.updateAll()` reads `Store.getAllLastEventMillis()`
+and calls `Complications.updateComplication(id, {:value, :shortLabel})` with
+a compact age string from the new pure `formatAge()` helper ("Nm" under an
+hour, "Nh" under a day, "Nd" beyond that, "—" when never recorded) --
+`:unit` is intentionally omitted rather than passed as `null`, since the
+`Complications.Data` typedef's `:unit` field type (`Unit or String`) doesn't
+accept `Null` and the type checker rejects it. `updateAll()` is called from
+`RecordController.record()` (after every successful record), from
+`BabyDaybookApp.onStart()` (covers both a real foreground app start and the
+`onStart()` background processes also run before their service delegate --
+see the `background-sync` note above), and from
+`BackgroundServiceDelegate.finish()` (end of every temporal wake, so the
+published age keeps advancing with wall-clock time even while the app stays
+closed and no record/flush actually changed anything).
+
+Verified `ComplicationsPublisher.formatAge()` against
+`source/ComplicationsPublisherTest.mc` (5 cases: never-recorded -> "—",
+minute formatting up to the 59m/60m boundary, hour formatting up to the
+23h/24h boundary, day formatting, and clamping a future `lastEventMillis`
+-- clock skew -- to "0m" instead of going negative). `updateOne()`/
+`updateAll()` themselves call `Complications.updateComplication()`, which
+needs a real subscriber or the simulator's Complication Viewer to observe;
+not exercised by `(:test)`, consistent with this project's pattern of not
+unit-testing calls into live platform APIs. All 5 new cases pass, and the
+full suite (85/85 across every `*Test.mc` module) still passes, via
+`monkeydo BabyDaybookTest.prg fenix7 -t`. Confirmed a normal build succeeds
+for all three real device IDs (`fenix7`, `fenix7s`, `fenix7x`), that a
+type-check level 2 ("Informative") build is clean (no `(:background)`-scope
+leak from the new module), and that `monkeydo BabyDaybook.prg fenix7`
+launches without a new `CIQ_LOG.YML` crash entry.
+
+The live verification this task calls for -- confirming the three
+complications actually appear with the right icon/long label/short-label
+age either in the simulator's Complication Viewer or on a subscribing test
+watch face, and that the value visibly advances/refreshes after a record,
+an app relaunch, and a fired temporal event -- was **not** driven live in
+this environment: same missing Screen Recording/Accessibility permission
+noted throughout this file, which blocks both `screencapture` and synthetic
+input against the simulator window. What *was* confirmed: the pure
+age-formatting logic above, that the publish call itself type-checks and
+builds cleanly across every device/background configuration, and that nothing
+in this change regresses the existing 80 tests. A real Complication
+Viewer / subscribing-watch-face pass is still recommended before treating
+this task's `test`/`commit` steps as fully closed.

@@ -83,6 +83,10 @@ class BackgroundServiceDelegate extends System.ServiceDelegate {
     function finish() as Void {
         SyncQueue.setOnChanged(null);
         SyncQueue.setFlushGate(null);
+        // Refresh published ages at the end of every wake, not just when a
+        // flush actually changed something, so the displayed age keeps
+        // advancing with wall-clock time while the app stays closed.
+        ComplicationsPublisher.updateAll();
         Background.exit(null);
     }
 

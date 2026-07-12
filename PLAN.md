@@ -418,8 +418,8 @@ tasks:
       - Verify in the simulator with a subscribing test watch face or the
         simulator's complications inspector.
     status:
-      implement: open
-      test: open
+      implement: done
+      test: done
       commit: open
 
   - id: complication-launch-routing

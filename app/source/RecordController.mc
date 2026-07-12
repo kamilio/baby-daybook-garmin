@@ -36,6 +36,7 @@ module RecordController {
 
         Store.setLastEventMillis(action, nowMillis);
         Store.setLastAction(action);
+        ComplicationsPublisher.updateAll();
 
         var successView = new SuccessView(label, nowMillis, itemId, false);
         WatchUi.pushView(successView, new SuccessDelegate(successView), WatchUi.SLIDE_IMMEDIATE);

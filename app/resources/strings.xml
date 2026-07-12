@@ -2,6 +2,11 @@
     <string id="AppName">Baby Daybook</string>
     <string id="PlaceholderText">Baby Daybook</string>
 
+    <string id="BottleComplicationLongLabel">Last bottle</string>
+    <string id="WetComplicationLongLabel">Last wet diaper</string>
+    <string id="DirtyComplicationLongLabel">Last dirty diaper</string>
+    <string id="ComplicationPendingShortLabel">—</string>
+
     <string id="RefreshTokenTitle">Firebase refresh token</string>
     <string id="BabyUidTitle">Baby UID</string>
     <string id="SyncIntervalMinutesTitle">Sync interval (minutes)</string>
