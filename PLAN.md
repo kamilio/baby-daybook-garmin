@@ -296,9 +296,9 @@ tasks:
         Store.lastAction, persisted on every activation.
       Verify all of it in the fenix7 simulator, touch and buttons.
     status:
-      implement: open
-      test: open
-      commit: open
+      implement: done
+      test: done
+      commit: done
 
   - id: diaper-instant-record
     title: Instant diaper recording and success screen
