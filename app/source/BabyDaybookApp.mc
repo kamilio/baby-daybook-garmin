@@ -14,9 +14,9 @@ class BabyDaybookApp extends Application.AppBase {
     function onStop(state as Dictionary?) as Void {
     }
 
-    // Return the initial view of your application here
     function getInitialView() as [Views] or [Views, InputDelegates] {
-        return [ new BabyDaybookView(), new BabyDaybookDelegate() ];
+        var view = new HomeView();
+        return [ view, new HomeDelegate(view) ];
     }
 
 }

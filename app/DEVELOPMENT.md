@@ -280,3 +280,32 @@ normal build still succeeds with `SyncQueue.mc`/`SyncQueueTest.mc` present,
 `(:background)` annotations hold, and that `TokenClient.mc`/
 `FirestoreClient.mc` still build and pass after their `nowEpochMillis()`
 duplication was extracted into a new shared `TimeUtil.mc` module.
+
+Verified `HomeView.mc`/`HomeDelegate.mc` against `source/HomeViewTest.mc` (6
+cases: the three tap-zone bounds tile the full display height with no gap
+or overlap at all three round profiles (240/260/280 px) and the Wet zone is
+always the widest band; `zoneAt()` boundary pixels resolve to the correct
+neighboring zone with no off-by-one; the zone<->action string mapping
+round-trips both ways and defaults to Wet for `null`/unrecognized actions;
+the initial highlight ring reflects `Store.lastAction` (Bottle/Dirty/none ->
+Wet default); and `moveHighlight()` wraps correctly in both directions).
+All 6 pass via `monkeydo BabyDaybookTest.prg fenix7 -t` (62/62 total).
+Confirmed a normal build succeeds for all three real device IDs
+(`fenix7`, `fenix7s`, `fenix7x`), and that removing the now-dead
+`BabyDaybookView`/`BabyDaybookDelegate` scaffold placeholders (superseded by
+`HomeView`/`HomeDelegate` as the app's initial view) doesn't break the build.
+
+Live touch/button interaction in the simulator window (tapping each zone,
+Up/Down/START/BACK) was **not** exercised end-to-end in this environment:
+the sandboxed shell driving the build has neither macOS Screen Recording
+nor Accessibility permission, so `screencapture` can't image the simulator
+window and synthetic input tools (`cliclick`) can't deliver clicks/keys to
+it (both fail with permission errors, confirmed empirically). What *was*
+confirmed live: the app builds and launches in the `fenix7` simulator via
+`monkeydo` without crashing. The tap hit-testing, zone geometry, and
+highlight-navigation logic that the touch/button paths call into is fully
+covered by `HomeViewTest.mc` above; `onTap`/`onNextPage`/`onPreviousPage`/
+`onSelect`/`onBack` themselves are thin wrappers over that logic (verified
+by code review against the `WatchUi.BehaviorDelegate`/`ClickEvent` API).
+A real click-through pass (or a physical-device pass) is still recommended
+before treating this task's `test`/`commit` steps as fully closed.
