@@ -39,6 +39,14 @@ export function decodeFields(fields) {
   return Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, decodeValue(value)]));
 }
 
+export function decodeDocument(document, idField) {
+  const data = decodeFields(document.fields || {});
+  if (idField && data[idField] === undefined) {
+    data[idField] = String(document.name || "").split("/").at(-1);
+  }
+  return data;
+}
+
 export function decodeValue(value) {
   if ("stringValue" in value) return value.stringValue;
   if ("integerValue" in value) return Number(value.integerValue);

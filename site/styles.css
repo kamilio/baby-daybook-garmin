@@ -223,7 +223,8 @@ label {
 }
 
 textarea,
-input {
+input,
+select {
   width: 100%;
   padding: 14px 15px;
   border: 1.5px solid #cbdcde;
@@ -237,7 +238,10 @@ input {
 
 textarea { min-height: 122px; resize: vertical; overflow-wrap: anywhere; }
 textarea:focus,
-input:focus { border-color: var(--aqua); box-shadow: 0 0 0 4px rgb(22 154 167 / 12%); }
+input:focus,
+select:focus { border-color: var(--aqua); box-shadow: 0 0 0 4px rgb(22 154 167 / 12%); }
+
+select { appearance: auto; font-family: inherit; }
 
 code {
   padding: .15em .35em;

@@ -4,6 +4,7 @@ import {
   APPLE_CLIENT_ID,
   APPLE_REDIRECT_URI,
   appleAuthorizationUrl,
+  decodeDocument,
   decodeFields,
   firebaseError,
   parseAppleCallback,
@@ -47,6 +48,14 @@ test("decodes Firestore baby profile fields", () => {
     tags: ["girl"],
     nested: { color: "#FF647E" },
   });
+});
+
+test("uses the Firestore document id when babyUid is omitted from fields", () => {
+  const result = decodeDocument({
+    name: "projects/x/databases/(default)/documents/userData/user/createdBabies/victoria-uid",
+    fields: { deleted: { booleanValue: false } },
+  }, "babyUid");
+  assert.equal(result.babyUid, "victoria-uid");
 });
 
 test("renders a useful Firebase rejection", () => {

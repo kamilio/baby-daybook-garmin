@@ -1,6 +1,7 @@
 import {
   HttpError,
   appleAuthorizationUrl,
+  decodeDocument,
   decodeFields,
   firebaseError,
   parseAppleCallback,
@@ -16,7 +17,6 @@ const appleLink = document.querySelector("#apple-link");
 const callbackForm = document.querySelector("#callback-form");
 const babyForm = document.querySelector("#baby-form");
 const babyOptions = document.querySelector("#baby-options");
-const manualBaby = document.querySelector("#manual-baby");
 const status = document.querySelector("#status");
 const setupCode = document.querySelector("#setup-code");
 const copySetupCode = document.querySelector("#copy-setup-code");
@@ -103,8 +103,8 @@ async function exchangeAppleCredential(credential) {
 
 async function listBabies(idToken, userId) {
   const [created, accepted] = await Promise.all([
-    listCollection(idToken, `userData/${userId}/createdBabies`),
-    listCollection(idToken, `userData/${userId}/acceptedInvites`),
+    listCollection(idToken, `userData/${userId}/createdBabies`, "babyUid"),
+    listCollection(idToken, `userData/${userId}/acceptedInvites`, "babyUid"),
   ]);
   const babyUids = [...new Set([...created, ...accepted]
     .filter((record) => !record.deleted && typeof record.babyUid === "string")
@@ -118,10 +118,10 @@ async function listBabies(idToken, userId) {
   return babies.filter((baby) => baby && !baby.deleted);
 }
 
-async function listCollection(idToken, path) {
+async function listCollection(idToken, path, idField) {
   const response = await firestoreRequest(idToken, path);
   if (!response.documents) return [];
-  return response.documents.map((document) => decodeFields(document.fields || {}));
+  return response.documents.map((document) => decodeDocument(document, idField));
 }
 
 async function getDocument(idToken, path) {
@@ -148,41 +148,26 @@ async function firestoreRequest(idToken, path) {
 function renderBabies(babies) {
   babyOptions.replaceChildren();
   if (babies.length === 0) {
-    manualBaby.hidden = false;
-    showError("No baby profiles were returned. Enter a Baby UID manually.");
+    showError("No Baby Daybook profiles were found for this Apple account.");
     return;
   }
 
-  manualBaby.hidden = true;
+  const label = document.createElement("label");
+  label.htmlFor = "baby-select";
+  label.textContent = "Baby profile";
+  const select = document.createElement("select");
+  select.id = "baby-select";
+  select.name = "babyUid";
+  select.required = true;
+  const hasVictoria = babies.some((baby) => baby.name === "Victoria");
   babies.forEach((baby, index) => {
-    const label = document.createElement("label");
-    label.className = "baby-option";
-    const input = document.createElement("input");
-    input.type = "radio";
-    input.name = "babyUid";
-    input.value = baby.uid;
-    input.required = true;
-    input.checked = babies.length === 1 || baby.name === "Victoria" || (index === 0 && !babies.some((item) => item.name === "Victoria"));
-
-    const content = document.createElement("span");
-    content.className = "baby-option-content";
-    const avatar = document.createElement("span");
-    avatar.className = "baby-avatar";
-    avatar.textContent = (baby.name || "B").slice(0, 1).toUpperCase();
-    const detail = document.createElement("span");
-    const name = document.createElement("span");
-    name.className = "baby-name";
-    name.textContent = baby.name || "Baby Daybook profile";
-    const meta = document.createElement("span");
-    meta.className = "baby-meta";
-    meta.textContent = baby.gender ? `${capitalize(baby.gender)} profile` : "Baby Daybook profile";
-    detail.append(name, meta);
-    const mark = document.createElement("span");
-    mark.className = "radio-mark";
-    content.append(avatar, detail, mark);
-    label.append(input, content);
-    babyOptions.append(label);
+    const option = document.createElement("option");
+    option.value = baby.uid;
+    option.textContent = baby.name || "Baby Daybook profile";
+    option.selected = baby.name === "Victoria" || (index === 0 && !hasVictoria);
+    select.append(option);
   });
+  babyOptions.append(label, select);
 }
 
 function firebaseHeaders() {
@@ -236,8 +221,4 @@ function randomState() {
 
 function readableError(error) {
   return error instanceof Error ? error.message : "Something went wrong. Please try again.";
-}
-
-function capitalize(value) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }
