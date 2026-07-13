@@ -47,6 +47,22 @@ export function decodeDocument(document, idField) {
   return data;
 }
 
+export function parseWatchEvents(payload) {
+  const raw = String(payload || "");
+  if (!raw) throw new Error("The watch did not send any queued events.");
+  return raw.split("~").map((record) => {
+    const [id, type, startMillis, volume, pee, poo] = record.split("|");
+    if (!/^[0-9]+-[0-9]+$/.test(id) || !["bottle", "diaper_change"].includes(type) || !/^\d+$/.test(startMillis)) {
+      throw new Error("The watch sent an invalid event.");
+    }
+    return {
+      id, type, startMillis: Number(startMillis),
+      volume: volume ? Number(volume) : null,
+      pee: pee === "1", poo: poo === "1",
+    };
+  });
+}
+
 export function decodeValue(value) {
   if ("stringValue" in value) return value.stringValue;
   if ("integerValue" in value) return Number(value.integerValue);

@@ -43,7 +43,7 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
         addItem(new WatchUi.MenuItem("Bottle", BabyDaybookMenu.lastEventLabel(Store.ACTION_BOTTLE), :bottle, null));
         addItem(new WatchUi.MenuItem("Wet diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_WET), :wet, null));
         addItem(new WatchUi.MenuItem("Dirty diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_DIRTY), :dirty, null));
-        syncItem = new WatchUi.MenuItem("Sync · v0.8", statusText(), :sync, null);
+        syncItem = new WatchUi.MenuItem("Sync · v0.9", statusText(), :sync, null);
         addItem(syncItem);
     }
 
@@ -87,6 +87,9 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
             return "Uploading · " + pending.toString() + " queued";
         }
         if (pending > 0) {
+            if (stage.equals("phone_notification")) {
+                return "Check phone · " + pending.toString() + " queued";
+            }
             if (stage.equals("transport_error") || stage.equals("token_error")) {
                 return "Offline " + code.toString() + " · " + pending.toString() + " queued";
             }
@@ -122,7 +125,7 @@ class BabyDaybookMenuDelegate extends WatchUi.Menu2InputDelegate {
                 return;
             }
             Store.setQueueLastError(false);
-            SyncQueue.flush();
+            BrowserSync.request();
         } else if (id == :bottle) {
             var picker = new BottleAmountPicker(false);
             WatchUi.pushView(picker, new BottleAmountPickerDelegate(picker), WatchUi.SLIDE_UP);

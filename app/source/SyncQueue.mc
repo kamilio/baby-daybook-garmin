@@ -135,9 +135,6 @@ module SyncQueue {
 
         Store.setSyncQueue(queue);
         Store.setSyncDiagnostic("queued", 0);
-        // flush() before notifyChanged() so isFlushing() is accurate by the
-        // time any onChanged callback runs.
-        flush();
         notifyChanged();
         return id;
     }
@@ -308,6 +305,22 @@ module SyncQueue {
         var removed = queue[i];
         Store.setSyncQueue(queue.slice(0, i).addAll(queue.slice(i + 1, null)));
         return removed;
+    }
+
+    function acknowledgeBrowserSync(ids as String) as Void {
+        var remaining = ids;
+        while (remaining.length() > 0) {
+            var comma = remaining.find(",");
+            var end = (comma == null) ? remaining.length() : comma;
+            removeItemById(remaining.substring(0, end));
+            if (comma == null) { break; }
+            remaining = remaining.substring(comma + 1, remaining.length());
+        }
+        Store.setQueueLastError(false);
+        Store.setQueueNeedsToken(false);
+        Store.setLastSyncMillis(TimeUtil.nowEpochMillis());
+        Store.setSyncDiagnostic("synced", 200);
+        notifyChanged();
     }
 
     (:background)

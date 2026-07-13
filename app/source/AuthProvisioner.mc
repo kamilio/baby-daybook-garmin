@@ -54,10 +54,25 @@ module AuthProvisioner {
     }
 
     function onOAuthMessage(message as Authentication.OAuthMessage) as Void {
-        if (applyCredentials(message.data)) {
+        var data = message.data;
+        if (data instanceof Dictionary) {
+            var acked = data.get("acked");
+            if (acked instanceof String && acked.length() > 0) {
+                SyncQueue.acknowledgeBrowserSync(acked);
+                WatchUi.requestUpdate();
+                return;
+            }
+            var syncError = data.get("syncError");
+            if (syncError instanceof String) {
+                Store.setSyncDiagnostic("phone_sync_error", 0);
+                Store.setQueueLastError(true);
+                WatchUi.requestUpdate();
+                return;
+            }
+        }
+        if (applyCredentials((data instanceof Dictionary) ? data : null)) {
             Store.setQueueNeedsToken(false);
             Store.setQueueLastError(false);
-            SyncQueue.flush();
             WatchUi.requestUpdate();
         } else {
             requested = false;

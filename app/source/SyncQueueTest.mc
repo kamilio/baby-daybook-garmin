@@ -30,12 +30,13 @@ module SyncQueueTest {
     }
 
     (:test)
-    function testEnqueuePausesQueueWhenNoRefreshTokenConfigured(logger as Test.Logger) as Boolean {
+    function testEnqueueQueuesWithoutStartingDirectNetwork(logger as Test.Logger) as Boolean {
         Storage.clearValues();
         SyncQueue.enqueue({ "type" => "bottle" });
-        var paused = SyncQueue.needsToken();
+        var queued = Store.getSyncQueue().size() == 1;
+        var idle = !SyncQueue.isFlushing() && !SyncQueue.needsToken();
         Storage.clearValues();
-        return paused;
+        return queued && idle;
     }
 
     (:test)

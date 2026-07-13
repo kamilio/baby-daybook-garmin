@@ -16,7 +16,6 @@ module SettingsProvisioner {
         Properties.setValue("setupCallbackUrl", "");
         Store.setQueueNeedsToken(false);
         Store.setQueueLastError(false);
-        SyncQueue.flush();
         return true;
     }
 

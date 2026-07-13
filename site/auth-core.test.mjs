@@ -8,6 +8,7 @@ import {
   decodeFields,
   firebaseError,
   parseAppleCallback,
+  parseWatchEvents,
 } from "./auth-core.mjs";
 
 test("builds Baby Daybook's registered Apple authorization request", () => {
@@ -56,6 +57,14 @@ test("uses the Firestore document id when babyUid is omitted from fields", () =>
     fields: { deleted: { booleanValue: false } },
   }, "babyUid");
   assert.equal(result.babyUid, "victoria-uid");
+});
+
+test("parses compact watch event batches", () => {
+  assert.deepEqual(parseWatchEvents("100-1|bottle|1000|120|0|0~101-2|diaper_change|2000||1|0"), [
+    { id: "100-1", type: "bottle", startMillis: 1000, volume: 120, pee: false, poo: false },
+    { id: "101-2", type: "diaper_change", startMillis: 2000, volume: null, pee: true, poo: false },
+  ]);
+  assert.throws(() => parseWatchEvents("bad"), /invalid event/);
 });
 
 test("renders a useful Firebase rejection", () => {
