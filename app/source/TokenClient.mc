@@ -11,9 +11,10 @@ import Toybox.Lang;
 (:background)
 module TokenClient {
 
-    const TOKEN_URL = "https://securetoken.googleapis.com/v1/token?key=AIzaSyDIjjUS-7888pKeaVgNM1g2lSLOX4i6Na8";
-    const ANDROID_PACKAGE = "com.drillyapps.babydaybook";
-    const ANDROID_CERT = "F63803E1E071269A0DDAB71664A1A55F6F27F8D4";
+    // Firebase Hosting publicly exposes this project's web client key at
+    // /__/firebase/init.json. Unlike the Android key, it does not require
+    // X-Android-* headers, which Garmin rejects with response -200.
+    const TOKEN_URL = "https://securetoken.googleapis.com/v1/token?key=AIzaSyCk3AqWYjkUemIwun_y8Vlhm1YoecyEunE";
 
     const TOKEN_EXPIRY_SKEW_MILLIS = 60000;
     const DEFAULT_EXPIRES_IN_SECONDS = 3600l;
@@ -84,9 +85,7 @@ module TokenClient {
         var options = {
             :method => Communications.HTTP_REQUEST_METHOD_POST,
             :headers => {
-                "Content-Type" => "application/x-www-form-urlencoded",
-                "X-Android-Package" => ANDROID_PACKAGE,
-                "X-Android-Cert" => ANDROID_CERT
+                "Content-Type" => Communications.REQUEST_CONTENT_TYPE_URL_ENCODED
             },
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
