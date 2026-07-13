@@ -1,11 +1,7 @@
 <settings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
 
-    <setting propertyKey="@Properties.refreshToken" title="@Strings.RefreshTokenTitle">
-        <settingConfig type="password" maxLength="512" />
-    </setting>
-
-    <setting propertyKey="@Properties.babyUid" title="@Strings.BabyUidTitle">
-        <settingConfig type="alphaNumeric" maxLength="128" />
+    <setting propertyKey="@Properties.setupCallbackUrl" title="@Strings.SetupCallbackTitle">
+        <settingConfig type="password" maxLength="2048" />
     </setting>
 
     <setting propertyKey="@Properties.syncIntervalMinutes" title="@Strings.SyncIntervalMinutesTitle">

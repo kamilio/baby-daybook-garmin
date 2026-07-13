@@ -36,6 +36,10 @@ class BabyDaybookApp extends Application.AppBase {
         launchedFromComplication = (value instanceof Number) ? value : null;
     }
 
+    function onSettingsChanged() as Void {
+        SettingsProvisioner.applyFromProperties();
+    }
+
     (:background)
     function onStop(state as Dictionary?) as Void {
     }
@@ -86,20 +90,19 @@ class BabyDaybookApp extends Application.AppBase {
 
     function getInitialView() as [Views] or [Views, InputDelegates] {
         AuthProvisioner.initialize();
-        AuthProvisioner.requestIfNeeded();
-
+        SettingsProvisioner.applyFromProperties();
         var complicationId = launchedFromComplication;
         if (complicationId == ComplicationsPublisher.ID_WET) {
             return RecordController.recordDiaperInitialView(Store.ACTION_WET);
         } else if (complicationId == ComplicationsPublisher.ID_DIRTY) {
             return RecordController.recordDiaperInitialView(Store.ACTION_DIRTY);
         } else if (complicationId == ComplicationsPublisher.ID_BOTTLE) {
-            var bottleView = new BottleConfirmView(true);
-            return [ bottleView, new BottleConfirmDelegate(bottleView) ];
+            var bottlePicker = new BottleAmountPicker(true);
+            return [ bottlePicker, new BottleAmountPickerDelegate(bottlePicker) ];
         }
 
-        var view = new HomeView();
-        return [ view, new HomeDelegate(view) ];
+        var menu = BabyDaybookMenu.create();
+        return [ menu, new BabyDaybookMenuDelegate() ];
     }
 
 }

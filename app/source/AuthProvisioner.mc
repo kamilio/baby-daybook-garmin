@@ -42,6 +42,13 @@ module AuthProvisioner {
         );
     }
 
+    // User-initiated retries must always create a fresh Connect IQ Mobile
+    // notification. The platform does not open the phone browser directly.
+    function requestNow() as Void {
+        requested = false;
+        requestIfNeeded();
+    }
+
     function onOAuthMessage(message as Authentication.OAuthMessage) as Void {
         if (applyCredentials(message.data)) {
             Store.setQueueNeedsToken(false);

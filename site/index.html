@@ -75,7 +75,7 @@
           <input id="baby-uid" name="babyUid" spellcheck="false" autocomplete="off" placeholder="Baby UID">
         </div>
         <button class="button primary-button" type="submit">
-          Send to Garmin
+          Create Garmin setup code
           <img src="assets/watch.svg" alt="">
         </button>
       </form>
@@ -83,10 +83,11 @@
 
     <section class="card completion-card" id="step-complete" data-step="4" hidden>
       <div class="success-mark">✓</div>
-      <p class="kicker">Connected</p>
-      <h2>Returning to your watch</h2>
-      <p>Your credentials are being handed directly to Garmin. You can close this page when the watch updates.</p>
-      <a id="return-link" class="button primary-button">Return to Garmin</a>
+      <p class="kicker">Setup code ready</p>
+      <h2>Paste this into Connect IQ</h2>
+      <p>Open Baby Daybook’s settings in the Connect IQ app, paste this entire callback into “Setup”, save, and sync your watch.</p>
+      <textarea id="setup-code" rows="5" readonly spellcheck="false"></textarea>
+      <button id="copy-setup-code" class="button primary-button" type="button">Copy setup code</button>
     </section>
 
     <div id="status" class="status" role="status" aria-live="polite" hidden></div>

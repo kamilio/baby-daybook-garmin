@@ -1,6 +1,7 @@
 import Toybox.Application.Storage;
 import Toybox.Lang;
 import Toybox.Test;
+import Toybox.WatchUi;
 
 // Exercises the pure register/skip decision behind
 // BabyDaybookApp.registerBackgroundSync() without touching the real
@@ -63,20 +64,20 @@ module BabyDaybookAppTest {
     }
 
     (:test)
-    function testGetInitialViewRoutesBottleComplicationToExitOnConfirmBottleView(logger as Test.Logger) as Boolean {
+    function testGetInitialViewRoutesBottleComplicationToExitOnConfirmPicker(logger as Test.Logger) as Boolean {
         var app = new BabyDaybookApp();
         app.launchedFromComplication = ComplicationsPublisher.ID_BOTTLE;
         var result = app.getInitialView();
-        var view = result[0] as BottleConfirmView;
-        return (view instanceof BottleConfirmView) && view.exitOnConfirm;
+        var view = result[0] as BottleAmountPicker;
+        return (view instanceof BottleAmountPicker) && view.exitOnConfirm;
     }
 
     (:test)
-    function testGetInitialViewFallsBackToHomeViewWithoutComplicationLaunch(logger as Test.Logger) as Boolean {
+    function testGetInitialViewFallsBackToNativeMenuWithoutComplicationLaunch(logger as Test.Logger) as Boolean {
         var app = new BabyDaybookApp();
         app.launchedFromComplication = null;
         var result = app.getInitialView();
-        return result[0] instanceof HomeView;
+        return result[0] instanceof WatchUi.Menu2;
     }
 
 }

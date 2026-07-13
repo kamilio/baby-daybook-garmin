@@ -18,7 +18,8 @@ const babyForm = document.querySelector("#baby-form");
 const babyOptions = document.querySelector("#baby-options");
 const manualBaby = document.querySelector("#manual-baby");
 const status = document.querySelector("#status");
-const returnLink = document.querySelector("#return-link");
+const setupCode = document.querySelector("#setup-code");
+const copySetupCode = document.querySelector("#copy-setup-code");
 
 let refreshToken = "";
 
@@ -55,11 +56,18 @@ babyForm.addEventListener("submit", (event) => {
     return;
   }
 
-  const params = new URLSearchParams({ refreshToken, babyUid });
-  const callbackUrl = `connectiq://oauth?${params.toString()}`;
-  returnLink.href = callbackUrl;
+  if (!/^[A-Za-z0-9_-]+$/.test(refreshToken) || !/^[A-Za-z0-9_-]+$/.test(babyUid)) {
+    showError("Baby Daybook returned a setup value Garmin cannot import.");
+    return;
+  }
+  const callbackUrl = `connectiq://oauth?refreshToken=${refreshToken}&babyUid=${babyUid}`;
+  setupCode.value = callbackUrl;
   showStep(4);
-  window.location.assign(callbackUrl);
+});
+
+copySetupCode.addEventListener("click", async () => {
+  await navigator.clipboard.writeText(setupCode.value);
+  copySetupCode.textContent = "Copied";
 });
 
 document.querySelectorAll("[data-back]").forEach((button) => {
