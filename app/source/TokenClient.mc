@@ -84,9 +84,6 @@ module TokenClient {
         };
         var options = {
             :method => Communications.HTTP_REQUEST_METHOD_POST,
-            :headers => {
-                "Content-Type" => Communications.REQUEST_CONTENT_TYPE_URL_ENCODED
-            },
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
         // method(:sym) only binds to an implicit self on class instances;

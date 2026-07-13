@@ -43,7 +43,7 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
         addItem(new WatchUi.MenuItem("Bottle", BabyDaybookMenu.lastEventLabel(Store.ACTION_BOTTLE), :bottle, null));
         addItem(new WatchUi.MenuItem("Wet diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_WET), :wet, null));
         addItem(new WatchUi.MenuItem("Dirty diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_DIRTY), :dirty, null));
-        syncItem = new WatchUi.MenuItem("Sync", statusText(), :sync, null);
+        syncItem = new WatchUi.MenuItem("Sync · v0.8", statusText(), :sync, null);
         addItem(syncItem);
     }
 
