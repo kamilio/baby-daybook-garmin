@@ -4,6 +4,14 @@
         <settingConfig type="password" maxLength="2048" />
     </setting>
 
+    <setting propertyKey="@Properties.manualRefreshToken" title="@Strings.ManualRefreshTokenTitle">
+        <settingConfig type="password" maxLength="2048" />
+    </setting>
+
+    <setting propertyKey="@Properties.manualBabyUid" title="@Strings.ManualBabyUidTitle">
+        <settingConfig type="alphaNumeric" maxLength="128" />
+    </setting>
+
     <setting propertyKey="@Properties.syncIntervalMinutes" title="@Strings.SyncIntervalMinutesTitle">
         <settingConfig type="numeric" min="5" />
     </setting>

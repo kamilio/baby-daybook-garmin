@@ -4,12 +4,21 @@ import Toybox.WatchUi;
 class SyncDiagnosticsMenu extends WatchUi.Menu2 {
     function initialize() {
         Menu2.initialize({ :title => "Sync diagnostics" });
-        addItem(new WatchUi.MenuItem("Phone sync", "Recommended · sends notification", :phone_sync, null));
-        addItem(new WatchUi.MenuItem("OAuth sign-in", "Sends setup notification", :oauth, null));
+        addItem(new WatchUi.MenuItem("Configuration", configurationText(), :configuration, null));
+        addItem(new WatchUi.MenuItem("Import settings", "Reads pasted setup values", :settings, null));
         addItem(new WatchUi.MenuItem("Token refresh", "Tests Firebase authentication", :token, null));
         addItem(new WatchUi.MenuItem("Direct Firestore", "Tests Garmin header support", :firestore, null));
-        addItem(new WatchUi.MenuItem("Import settings", "Reads pasted setup code", :settings, null));
+        addItem(new WatchUi.MenuItem("Phone handoff", "Experimental notification path", :phone_sync, null));
+        addItem(new WatchUi.MenuItem("Queue", queueText(), :result, null));
         addItem(new WatchUi.MenuItem("Last result", resultText(), :result, null));
+    }
+
+    function configurationText() as String {
+        return BabyDaybookMenu.isProvisioned() ? "Configured" : "Missing setup values";
+    }
+
+    function queueText() as String {
+        return SyncQueue.pendingCount().toString() + " pending";
     }
 
     function resultText() as String {
@@ -23,17 +32,19 @@ class SyncDiagnosticsMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId();
-        if (id == :phone_sync) {
+        if (id == :configuration) {
+            var valid = BabyDaybookMenu.isProvisioned();
+            Store.setSyncDiagnostic(valid ? "config_ok" : "config_missing", valid ? 200 : 0);
+        } else if (id == :phone_sync) {
             BrowserSync.request();
-        } else if (id == :oauth) {
-            AuthProvisioner.requestNow();
         } else if (id == :token) {
             SyncDiagnostics.testTokenRefresh();
         } else if (id == :firestore) {
             SyncDiagnostics.testFirestoreDirect();
         } else if (id == :settings) {
+            var hadSettings = SettingsProvisioner.hasPendingValues();
             var applied = SettingsProvisioner.applyFromProperties();
-            Store.setSyncDiagnostic(applied ? "settings_ok" : "settings_empty", applied ? 200 : 0);
+            if (!applied && !hadSettings) { Store.setSyncDiagnostic("settings_empty", 0); }
         } else if (id == :result) {
             WatchUi.popView(WatchUi.SLIDE_DOWN);
             var refreshed = new SyncDiagnosticsMenu();

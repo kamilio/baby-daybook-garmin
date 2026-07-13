@@ -34,16 +34,16 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
         Menu2.initialize({ :title => "Baby Daybook" });
         if (!BabyDaybookMenu.isProvisioned() || SyncQueue.needsToken()) {
             addItem(new WatchUi.MenuItem(
-                "Sign in on phone",
-                "Check Connect IQ notification",
-                :oauth,
+                "Setup required",
+                "Paste code in Connect IQ settings",
+                :setup,
                 null
             ));
         }
         addItem(new WatchUi.MenuItem("Bottle", BabyDaybookMenu.lastEventLabel(Store.ACTION_BOTTLE), :bottle, null));
         addItem(new WatchUi.MenuItem("Wet diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_WET), :wet, null));
         addItem(new WatchUi.MenuItem("Dirty diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_DIRTY), :dirty, null));
-        syncItem = new WatchUi.MenuItem("Sync · v0.10", statusText(), :sync, null);
+        syncItem = new WatchUi.MenuItem("Sync · v0.11", statusText(), :sync, null);
         addItem(syncItem);
         addItem(new WatchUi.MenuItem("Diagnostics", "Test each sync method", :diagnostics, null));
     }
@@ -68,11 +68,7 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
 
     function statusText() as String {
         if (!BabyDaybookMenu.isProvisioned() || SyncQueue.needsToken()) {
-            var setupDiagnostic = Store.getSyncDiagnostic();
-            if ((setupDiagnostic.get("stage") as String).equals("oauth_notification")) {
-                return "Check phone notification";
-            }
-            return "Setup required";
+            return "Paste setup code in settings";
         }
         var pending = SyncQueue.pendingCount();
         var diagnostic = Store.getSyncDiagnostic();
@@ -117,12 +113,14 @@ class BabyDaybookMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId();
-        if (id == :oauth) {
-            AuthProvisioner.requestNow();
+        if (id == :setup) {
+            var hadSettings = SettingsProvisioner.hasPendingValues();
+            var configured = SettingsProvisioner.applyFromProperties();
+            if (!configured && !hadSettings) { Store.setSyncDiagnostic("settings_missing", 0); }
         } else if (id == :sync) {
             SettingsProvisioner.applyFromProperties();
             if (!BabyDaybookMenu.isProvisioned()) {
-                AuthProvisioner.requestNow();
+                Store.setSyncDiagnostic("settings_missing", 0);
                 return;
             }
             Store.setQueueLastError(false);

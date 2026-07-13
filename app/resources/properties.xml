@@ -11,6 +11,8 @@
     <property id="refreshToken" type="string"></property>
     <property id="babyUid" type="string"></property>
     <property id="setupCallbackUrl" type="string"></property>
+    <property id="manualRefreshToken" type="string"></property>
+    <property id="manualBabyUid" type="string"></property>
 
     <!-- Minutes between background sync flushes; runtime floor is 5 (Config.mc). -->
     <property id="syncIntervalMinutes" type="number">15</property>
