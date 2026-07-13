@@ -13,6 +13,7 @@ module BrowserSync {
     function request() as Boolean {
         var payload = buildPayload(Store.getSyncQueue());
         if (payload.length() == 0) {
+            Store.setSyncDiagnostic("phone_sync_empty", 0);
             return false;
         }
         Store.setSyncDiagnostic("phone_notification", 0);

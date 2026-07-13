@@ -30,6 +30,28 @@ module FirestoreClient {
     // commitEvent() call would clobber it and is not a supported use.
     (:background)
     var pendingCallback = null as Method?;
+    var pendingProbeCallback = null as Method?;
+
+    function probeConnection(idToken as String, callback as Method(code as Number) as Void) as Void {
+        pendingProbeCallback = callback;
+        var options = {
+            :method => Communications.HTTP_REQUEST_METHOD_GET,
+            :headers => { "Authorization" => "Bearer " + idToken },
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
+        };
+        Communications.makeWebRequest(
+            "https://firestore.googleapis.com/v1/projects/baby-daybook-app/databases/(default)/documents/babyData/babyUid_" + Config.getBabyUid(),
+            null,
+            options,
+            new Lang.Method(FirestoreClient, :onProbeResponse)
+        );
+    }
+
+    function onProbeResponse(code as Number, data as Dictionary or String or Null) as Void {
+        var callback = pendingProbeCallback;
+        pendingProbeCallback = null;
+        if (callback != null) { callback.invoke(code); }
+    }
 
     (:background)
     function commitEvent(event as Dictionary, idToken as String, callback as Method(status as Number, responseCode as Number) as Void) as Void {

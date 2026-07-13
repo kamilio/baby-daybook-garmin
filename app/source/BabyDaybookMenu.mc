@@ -43,8 +43,9 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
         addItem(new WatchUi.MenuItem("Bottle", BabyDaybookMenu.lastEventLabel(Store.ACTION_BOTTLE), :bottle, null));
         addItem(new WatchUi.MenuItem("Wet diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_WET), :wet, null));
         addItem(new WatchUi.MenuItem("Dirty diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_DIRTY), :dirty, null));
-        syncItem = new WatchUi.MenuItem("Sync · v0.9", statusText(), :sync, null);
+        syncItem = new WatchUi.MenuItem("Sync · v0.10", statusText(), :sync, null);
         addItem(syncItem);
+        addItem(new WatchUi.MenuItem("Diagnostics", "Test each sync method", :diagnostics, null));
     }
 
     function onShow() as Void {
@@ -126,6 +127,9 @@ class BabyDaybookMenuDelegate extends WatchUi.Menu2InputDelegate {
             }
             Store.setQueueLastError(false);
             BrowserSync.request();
+        } else if (id == :diagnostics) {
+            var diagnostics = new SyncDiagnosticsMenu();
+            WatchUi.pushView(diagnostics, new SyncDiagnosticsMenuDelegate(), WatchUi.SLIDE_UP);
         } else if (id == :bottle) {
             var picker = new BottleAmountPicker(false);
             WatchUi.pushView(picker, new BottleAmountPickerDelegate(picker), WatchUi.SLIDE_UP);
