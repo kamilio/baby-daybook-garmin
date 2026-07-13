@@ -5,7 +5,7 @@ import {
   decodeFields,
   firebaseError,
   parseAppleCallback,
-} from "./auth-core.mjs";
+} from "./auth-core.mjs?v=20260712-2";
 
 const FIREBASE_API_KEY = "AIzaSyDIjjUS-7888pKeaVgNM1g2lSLOX4i6Na8";
 const FIREBASE_PROJECT_ID = "baby-daybook-app";
