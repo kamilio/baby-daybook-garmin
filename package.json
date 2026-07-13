@@ -1,0 +1,12 @@
+{
+  "name": "baby-daybook-garmin-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "garmin:login": "node scripts/publish-garmin-beta.mjs --login",
+    "garmin:publish": "node scripts/publish-garmin-beta.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.54.1"
+  }
+}

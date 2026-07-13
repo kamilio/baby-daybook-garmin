@@ -37,6 +37,33 @@ monkeyc -e -f monkey-beta.jungle \
   -y ../keys/developer_key.der -r
 ```
 
+### Publish a beta quickly
+
+The Garmin Developer portal has no supported publishing CLI. This repository
+automates its normal browser upload with Playwright and the installed Chrome;
+credentials and cookies remain in a local profile outside the repository.
+
+Install the small automation dependency and sign in once:
+
+```sh
+npm install
+npm run garmin:login
+```
+
+Then build/export the IQ package and publish it:
+
+```sh
+npm run garmin:publish -- \
+  --version 0.3.0-beta.1 \
+  --notes "Native Garmin controls and settings-based provisioning."
+```
+
+Use `--dry-run` to validate the package, version, and notes without contacting
+Garmin. The default package is `app/bin/BabyDaybook-beta.iq`. Set
+`GARMIN_PUBLISH_PROFILE` to use a different local Chrome profile, or
+`GARMIN_APP_ID` to target another listing. A failed upload saves a diagnostic
+screenshot at `output/playwright/garmin-publish-error.png`.
+
 ## GitHub Pages
 
 [`site/`](site/) is deployed by [the Pages workflow](.github/workflows/pages.yml)
