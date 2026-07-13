@@ -143,6 +143,20 @@ module SyncQueueTest {
         return !flushing;
     }
 
+    (:test)
+    function testPermanentFailureRetainsEventAndSurfacesError(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        Store.setSyncQueue([{ "id" => "rejected", "type" => "bottle", "startMillis" => 1l, "attempts" => 0 }]);
+        SyncQueue.pendingId = "rejected";
+        SyncQueue.onCommitResult(FirestoreClient.PERMANENT);
+        var queue = Store.getSyncQueue();
+        var retained = queue.size() == 1 && queue[0].get("id").equals("rejected");
+        var errored = Store.getQueueLastError();
+        var settled = !SyncQueue.isFlushing();
+        Storage.clearValues();
+        return retained && errored && settled;
+    }
+
     // Regression test for the background-service wall-clock budget: flush()
     // must refuse to dispatch a new item once the caller's gate says no,
     // rather than starting it and only being told to stop afterwards.

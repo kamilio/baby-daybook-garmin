@@ -83,6 +83,16 @@ module StoreTest {
     }
 
     (:test)
+    function testLastSyncMillisDefaultsAndRoundTrips(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        var missing = Store.getLastSyncMillis() == null;
+        Store.setLastSyncMillis(1720261201154l);
+        var stored = Store.getLastSyncMillis() == 1720261201154l;
+        Storage.clearValues();
+        return missing && stored;
+    }
+
+    (:test)
     function testLastEventMillisReturnsNullWhenMissing(logger as Test.Logger) as Boolean {
         Storage.clearValues();
         return Store.getLastEventMillis(Store.ACTION_BOTTLE) == null;

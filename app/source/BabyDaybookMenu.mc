@@ -6,16 +6,7 @@ import Toybox.WatchUi;
 // accessibility behavior instead of maintaining a custom card UI.
 module BabyDaybookMenu {
     function create() as WatchUi.Menu2 {
-        var menu = new WatchUi.Menu2({ :title => "Baby Daybook" });
-
-        if (!isProvisioned()) {
-            menu.addItem(new WatchUi.MenuItem("Setup required", "Use Connect IQ app settings", :setup, null));
-        }
-
-        menu.addItem(new WatchUi.MenuItem("Bottle", lastEventLabel(Store.ACTION_BOTTLE), :bottle, null));
-        menu.addItem(new WatchUi.MenuItem("Wet diaper", lastEventLabel(Store.ACTION_WET), :wet, null));
-        menu.addItem(new WatchUi.MenuItem("Dirty diaper", lastEventLabel(Store.ACTION_DIRTY), :dirty, null));
-        return menu;
+        return new BabyDaybookNativeMenu();
     }
 
     function isProvisioned() as Boolean {
@@ -36,6 +27,61 @@ module BabyDaybookMenu {
     }
 }
 
+class BabyDaybookNativeMenu extends WatchUi.Menu2 {
+    var syncItem as WatchUi.MenuItem;
+
+    function initialize() {
+        Menu2.initialize({ :title => "Baby Daybook" });
+        addItem(new WatchUi.MenuItem("Bottle", BabyDaybookMenu.lastEventLabel(Store.ACTION_BOTTLE), :bottle, null));
+        addItem(new WatchUi.MenuItem("Wet diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_WET), :wet, null));
+        addItem(new WatchUi.MenuItem("Dirty diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_DIRTY), :dirty, null));
+        syncItem = new WatchUi.MenuItem("Sync", statusText(), :sync, null);
+        addItem(syncItem);
+    }
+
+    function onShow() as Void {
+        SyncQueue.setOnChanged(new Lang.Method(self, :onSyncChanged));
+        refreshStatus();
+    }
+
+    function onHide() as Void {
+        SyncQueue.setOnChanged(null);
+    }
+
+    function onSyncChanged() as Void {
+        refreshStatus();
+    }
+
+    function refreshStatus() as Void {
+        syncItem.setSubLabel(statusText());
+        WatchUi.requestUpdate();
+    }
+
+    function statusText() as String {
+        if (!BabyDaybookMenu.isProvisioned() || SyncQueue.needsToken()) {
+            return "Setup required";
+        }
+        var pending = SyncQueue.pendingCount();
+        if (Store.getQueueLastError()) {
+            return "Sync error · " + pending.toString() + " retained";
+        }
+        if (SyncQueue.isFlushing()) {
+            return "Syncing · " + pending.toString() + " queued";
+        }
+        if (pending > 0) {
+            return pending.toString() + " queued · tap to retry";
+        }
+        var last = Store.getLastSyncMillis();
+        if (last == null) {
+            return "Ready";
+        }
+        var minutes = ((TimeUtil.nowEpochMillis() - last) / 60000).toNumber();
+        if (minutes < 1) { return "Synced just now"; }
+        if (minutes < 60) { return "Synced " + minutes.toString() + " min ago"; }
+        return "Synced " + (minutes / 60).toString() + " hr ago";
+    }
+}
+
 class BabyDaybookMenuDelegate extends WatchUi.Menu2InputDelegate {
     function initialize() {
         Menu2InputDelegate.initialize();
@@ -43,9 +89,10 @@ class BabyDaybookMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId();
-        if (id == :setup) {
-            // Re-read in case settings were synced while the app stayed open.
+        if (id == :sync) {
             SettingsProvisioner.applyFromProperties();
+            Store.setQueueLastError(false);
+            SyncQueue.flush();
         } else if (id == :bottle) {
             var picker = new BottleAmountPicker(false);
             WatchUi.pushView(picker, new BottleAmountPickerDelegate(picker), WatchUi.SLIDE_UP);

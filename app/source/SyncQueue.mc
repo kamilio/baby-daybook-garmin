@@ -196,6 +196,8 @@ module SyncQueue {
             if (item != null) {
                 Store.setLastEventMillis(actionForEvent(item), item.get("startMillis") as Numeric);
             }
+            Store.setLastSyncMillis(TimeUtil.nowEpochMillis());
+            Store.setQueueLastError(false);
             advance();
             return;
         }
@@ -215,9 +217,12 @@ module SyncQueue {
         }
 
         if (status == FirestoreClient.PERMANENT) {
-            removeItemById(pendingId);
+            // Never claim a rejected event synced or discard it. Keep it at
+            // the head of the queue for diagnosis/manual retry.
             Store.setQueueLastError(true);
-            advance();
+            pendingId = null;
+            pendingRetried = false;
+            notifyChanged();
             return;
         }
 

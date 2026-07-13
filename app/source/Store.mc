@@ -23,6 +23,7 @@ module Store {
     const KEY_LAST_BOTTLE_ML = "lastBottleMl";
     const KEY_LAST_ACTION = "lastAction";
     const KEY_REGISTERED_SYNC_INTERVAL_MINUTES = "registeredSyncIntervalMinutes";
+    const KEY_LAST_SYNC_MILLIS = "lastSyncMillis";
 
     const ACTION_BOTTLE = "bottle";
     const ACTION_WET = "wet";
@@ -125,6 +126,17 @@ module Store {
     (:background)
     function setQueueLastError(value as Boolean) as Void {
         setQueueStatusField("lastError", value);
+    }
+
+    (:background)
+    function getLastSyncMillis() as Numeric? {
+        var value = Storage.getValue(KEY_LAST_SYNC_MILLIS);
+        return isEpochMillis(value) ? value as Numeric : null;
+    }
+
+    (:background)
+    function setLastSyncMillis(value as Numeric) as Void {
+        Storage.setValue(KEY_LAST_SYNC_MILLIS, value);
     }
 
     (:background)
