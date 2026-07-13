@@ -28,11 +28,14 @@ module AuthProvisioner {
         if (requested || (Config.getRefreshToken().length() > 0 && Config.getBabyUid().length() > 0)) {
             return;
         }
+        issueRequest();
+    }
 
+    function issueRequest() as Void {
         requested = true;
         Authentication.makeOAuthRequest(
             PROVISIONING_URL,
-            {},
+            { "garminOAuth" => "1" },
             RESULT_URL,
             Authentication.OAUTH_RESULT_TYPE_URL,
             {
@@ -40,13 +43,14 @@ module AuthProvisioner {
                 "babyUid" => RESULT_BABY_UID
             }
         );
+        Store.setSyncDiagnostic("oauth_notification", 0);
     }
 
     // User-initiated retries must always create a fresh Connect IQ Mobile
     // notification. The platform does not open the phone browser directly.
     function requestNow() as Void {
         requested = false;
-        requestIfNeeded();
+        issueRequest();
     }
 
     function onOAuthMessage(message as Authentication.OAuthMessage) as Void {
@@ -57,6 +61,7 @@ module AuthProvisioner {
             WatchUi.requestUpdate();
         } else {
             requested = false;
+            Store.setSyncDiagnostic("oauth_failed", 0);
         }
     }
 

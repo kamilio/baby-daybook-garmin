@@ -5,7 +5,7 @@ import {
   decodeFields,
   firebaseError,
   parseAppleCallback,
-} from "./auth-core.mjs?v=20260712-2";
+} from "./auth-core.mjs?v=20260713-3";
 
 const FIREBASE_API_KEY = "AIzaSyDIjjUS-7888pKeaVgNM1g2lSLOX4i6Na8";
 const FIREBASE_PROJECT_ID = "baby-daybook-app";
@@ -20,6 +20,8 @@ const babyOptions = document.querySelector("#baby-options");
 const status = document.querySelector("#status");
 const setupCode = document.querySelector("#setup-code");
 const copySetupCode = document.querySelector("#copy-setup-code");
+const returnToGarmin = document.querySelector("#return-to-garmin");
+const garminOAuth = new URLSearchParams(window.location.search).get("garminOAuth") === "1";
 
 let refreshToken = "";
 
@@ -62,7 +64,10 @@ babyForm.addEventListener("submit", (event) => {
   }
   const callbackUrl = `connectiq://oauth?refreshToken=${refreshToken}&babyUid=${babyUid}`;
   setupCode.value = callbackUrl;
+  returnToGarmin.href = callbackUrl;
+  returnToGarmin.hidden = !garminOAuth;
   showStep(4);
+  if (garminOAuth) window.location.assign(callbackUrl);
 });
 
 copySetupCode.addEventListener("click", async () => {

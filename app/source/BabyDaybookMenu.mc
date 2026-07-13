@@ -32,6 +32,14 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
 
     function initialize() {
         Menu2.initialize({ :title => "Baby Daybook" });
+        if (!BabyDaybookMenu.isProvisioned() || SyncQueue.needsToken()) {
+            addItem(new WatchUi.MenuItem(
+                "Sign in on phone",
+                "Check Connect IQ notification",
+                :oauth,
+                null
+            ));
+        }
         addItem(new WatchUi.MenuItem("Bottle", BabyDaybookMenu.lastEventLabel(Store.ACTION_BOTTLE), :bottle, null));
         addItem(new WatchUi.MenuItem("Wet diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_WET), :wet, null));
         addItem(new WatchUi.MenuItem("Dirty diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_DIRTY), :dirty, null));
@@ -59,6 +67,10 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
 
     function statusText() as String {
         if (!BabyDaybookMenu.isProvisioned() || SyncQueue.needsToken()) {
+            var setupDiagnostic = Store.getSyncDiagnostic();
+            if ((setupDiagnostic.get("stage") as String).equals("oauth_notification")) {
+                return "Check phone notification";
+            }
             return "Setup required";
         }
         var pending = SyncQueue.pendingCount();
@@ -101,8 +113,14 @@ class BabyDaybookMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId();
-        if (id == :sync) {
+        if (id == :oauth) {
+            AuthProvisioner.requestNow();
+        } else if (id == :sync) {
             SettingsProvisioner.applyFromProperties();
+            if (!BabyDaybookMenu.isProvisioned()) {
+                AuthProvisioner.requestNow();
+                return;
+            }
             Store.setQueueLastError(false);
             SyncQueue.flush();
         } else if (id == :bottle) {
