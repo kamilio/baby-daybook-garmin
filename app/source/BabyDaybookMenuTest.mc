@@ -23,9 +23,23 @@ module BabyDaybookMenuTest {
         Storage.setValue("provisionedBabyUid", "baby");
         Store.setSyncQueue([{ "id" => "a" }]);
         Store.setQueueLastError(true);
+        Store.setSyncDiagnostic("rejected", 403);
         var menu = new BabyDaybookNativeMenu();
         var status = menu.statusText();
         Storage.clearValues();
-        return status.equals("Sync error · 1 retained");
+        return status.equals("Error 403 · 1 retained");
+    }
+
+    (:test)
+    function testStatusShowsRawTransportCode(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        Store.setAuthCache("", 0, "", "refresh");
+        Storage.setValue("provisionedBabyUid", "baby");
+        Store.setSyncQueue([{ "id" => "a" }, { "id" => "b" }]);
+        Store.setSyncDiagnostic("transport_error", -1001);
+        var menu = new BabyDaybookNativeMenu();
+        var status = menu.statusText();
+        Storage.clearValues();
+        return status.equals("Offline -1001 · 2 queued");
     }
 }

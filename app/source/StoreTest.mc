@@ -93,6 +93,19 @@ module StoreTest {
     }
 
     (:test)
+    function testSyncDiagnosticContainsOnlyOperationalFields(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        Store.setSyncDiagnostic("transport_error", -1001);
+        var value = Store.getSyncDiagnostic();
+        var ok = value.get("stage").equals("transport_error")
+            && value.get("code") == -1001
+            && ((value.get("atMillis") instanceof Long) || (value.get("atMillis") instanceof Number))
+            && value.size() == 3;
+        Storage.clearValues();
+        return ok;
+    }
+
+    (:test)
     function testLastEventMillisReturnsNullWhenMissing(logger as Test.Logger) as Boolean {
         Storage.clearValues();
         return Store.getLastEventMillis(Store.ACTION_BOTTLE) == null;

@@ -32,7 +32,7 @@ module FirestoreClient {
     var pendingCallback = null as Method?;
 
     (:background)
-    function commitEvent(event as Dictionary, idToken as String, callback as Method(status as Number) as Void) as Void {
+    function commitEvent(event as Dictionary, idToken as String, callback as Method(status as Number, responseCode as Number) as Void) as Void {
         pendingCallback = callback;
 
         var body = buildRequestBody(event, TokenClient.getUserId(), Config.getBabyUid(), TimeUtil.nowEpochMillis());
@@ -52,7 +52,7 @@ module FirestoreClient {
         var callback = pendingCallback;
         pendingCallback = null as Method?;
         if (callback != null) {
-            callback.invoke(classifyResponse(responseCode));
+            callback.invoke(classifyResponse(responseCode), responseCode);
         }
     }
 

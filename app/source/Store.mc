@@ -24,6 +24,7 @@ module Store {
     const KEY_LAST_ACTION = "lastAction";
     const KEY_REGISTERED_SYNC_INTERVAL_MINUTES = "registeredSyncIntervalMinutes";
     const KEY_LAST_SYNC_MILLIS = "lastSyncMillis";
+    const KEY_SYNC_DIAGNOSTIC = "syncDiagnostic";
 
     const ACTION_BOTTLE = "bottle";
     const ACTION_WET = "wet";
@@ -137,6 +138,27 @@ module Store {
     (:background)
     function setLastSyncMillis(value as Numeric) as Void {
         Storage.setValue(KEY_LAST_SYNC_MILLIS, value);
+    }
+
+    // Safe operational telemetry only. Never store URLs, tokens, payloads,
+    // baby IDs, or user IDs here.
+    (:background)
+    function setSyncDiagnostic(stage as String, code as Number) as Void {
+        Storage.setValue(KEY_SYNC_DIAGNOSTIC, {
+            "stage" => stage,
+            "code" => code,
+            "atMillis" => TimeUtil.nowEpochMillis()
+        });
+    }
+
+    (:background)
+    function getSyncDiagnostic() as Dictionary {
+        var value = Storage.getValue(KEY_SYNC_DIAGNOSTIC);
+        return (value instanceof Dictionary) ? value : {
+            "stage" => "idle",
+            "code" => 0,
+            "atMillis" => 0l
+        };
     }
 
     (:background)

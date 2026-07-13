@@ -66,6 +66,7 @@ module TokenClient {
     function requestRefresh() as Void {
         var refreshToken = Config.getRefreshToken();
         if (refreshToken.length() == 0) {
+            Store.setSyncDiagnostic("auth_missing", 0);
             // No web request goes out on this path, so onRefreshResponse
             // never runs to clear the flag -- without this, every later
             // getIdToken() call would queue forever and never retry.
@@ -73,6 +74,8 @@ module TokenClient {
             finishPending(null, AUTH_INVALID);
             return;
         }
+
+        Store.setSyncDiagnostic("token_request", 0);
 
         var params = {
             "grant_type" => "refresh_token",
@@ -103,15 +106,18 @@ module TokenClient {
             if (idToken instanceof String && refreshToken instanceof String && userId instanceof String) {
                 var expiresAtMillis = TimeUtil.nowEpochMillis() + (parseExpiresInSeconds(data.get("expires_in")) * 1000L);
                 Store.setAuthCache(idToken, expiresAtMillis, userId, refreshToken);
+                Store.setSyncDiagnostic("token_ok", responseCode);
                 finishPending(idToken, null);
                 return;
             }
         }
 
         if (responseCode == 400 || responseCode == 401) {
+            Store.setSyncDiagnostic("token_rejected", responseCode);
             finishPending(null, AUTH_INVALID);
             return;
         }
+        Store.setSyncDiagnostic("token_error", responseCode);
         finishPending(null, RETRYABLE);
     }
 

@@ -148,7 +148,7 @@ module SyncQueueTest {
         Storage.clearValues();
         Store.setSyncQueue([{ "id" => "rejected", "type" => "bottle", "startMillis" => 1l, "attempts" => 0 }]);
         SyncQueue.pendingId = "rejected";
-        SyncQueue.onCommitResult(FirestoreClient.PERMANENT);
+        SyncQueue.onCommitResult(FirestoreClient.PERMANENT, 403);
         var queue = Store.getSyncQueue();
         var retained = queue.size() == 1 && queue[0].get("id").equals("rejected");
         var errored = Store.getQueueLastError();

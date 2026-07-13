@@ -62,13 +62,25 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
             return "Setup required";
         }
         var pending = SyncQueue.pendingCount();
+        var diagnostic = Store.getSyncDiagnostic();
+        var stage = diagnostic.get("stage") as String;
+        var code = diagnostic.get("code") as Number;
         if (Store.getQueueLastError()) {
-            return "Sync error · " + pending.toString() + " retained";
+            return "Error " + code.toString() + " · " + pending.toString() + " retained";
         }
         if (SyncQueue.isFlushing()) {
-            return "Syncing · " + pending.toString() + " queued";
+            if (stage.equals("token_request") || stage.equals("auth")) {
+                return "Authenticating · " + pending.toString() + " queued";
+            }
+            return "Uploading · " + pending.toString() + " queued";
         }
         if (pending > 0) {
+            if (stage.equals("transport_error") || stage.equals("token_error")) {
+                return "Offline " + code.toString() + " · " + pending.toString() + " queued";
+            }
+            if (stage.equals("token_rejected") || stage.equals("auth_required")) {
+                return "Authentication failed · " + pending.toString() + " queued";
+            }
             return pending.toString() + " queued · tap to retry";
         }
         var last = Store.getLastSyncMillis();

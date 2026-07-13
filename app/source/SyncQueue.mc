@@ -134,6 +134,7 @@ module SyncQueue {
         }
 
         Store.setSyncQueue(queue);
+        Store.setSyncDiagnostic("queued", 0);
         // flush() before notifyChanged() so isFlushing() is accurate by the
         // time any onChanged callback runs.
         flush();
@@ -161,6 +162,7 @@ module SyncQueue {
 
     (:background)
     function requestToken() as Void {
+        Store.setSyncDiagnostic("auth", 0);
         TokenClient.getIdToken(new Lang.Method(SyncQueue, :onToken));
     }
 
@@ -186,11 +188,12 @@ module SyncQueue {
             return;
         }
 
+        Store.setSyncDiagnostic("uploading", 0);
         FirestoreClient.commitEvent(item, idToken, new Lang.Method(SyncQueue, :onCommitResult));
     }
 
     (:background)
-    function onCommitResult(status as Number) as Void {
+    function onCommitResult(status as Number, responseCode as Number) as Void {
         if (status == FirestoreClient.OK) {
             var item = removeItemById(pendingId);
             if (item != null) {
@@ -198,11 +201,13 @@ module SyncQueue {
             }
             Store.setLastSyncMillis(TimeUtil.nowEpochMillis());
             Store.setQueueLastError(false);
+            Store.setSyncDiagnostic("synced", responseCode);
             advance();
             return;
         }
 
         if (status == FirestoreClient.UNAUTHENTICATED) {
+            Store.setSyncDiagnostic("unauthorized", responseCode);
             if (!pendingRetried) {
                 pendingRetried = true;
                 TokenClient.invalidateIdToken();
@@ -220,6 +225,7 @@ module SyncQueue {
             // Never claim a rejected event synced or discard it. Keep it at
             // the head of the queue for diagnosis/manual retry.
             Store.setQueueLastError(true);
+            Store.setSyncDiagnostic("rejected", responseCode);
             pendingId = null;
             pendingRetried = false;
             notifyChanged();
@@ -229,12 +235,14 @@ module SyncQueue {
         // RETRYABLE -- keep the item, bump its attempt count, stop flushing
         // entirely (no retry storms on-watch); the next trigger (enqueue,
         // app start, background wake) tries again.
+        Store.setSyncDiagnostic("transport_error", responseCode);
         retryLater();
     }
 
     (:background)
     function pauseForToken() as Void {
         Store.setQueueNeedsToken(true);
+        Store.setSyncDiagnostic("auth_required", 0);
         pendingId = null;
         pendingRetried = false;
         notifyChanged();
