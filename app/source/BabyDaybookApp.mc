@@ -85,6 +85,9 @@ class BabyDaybookApp extends Application.AppBase {
     }
 
     function getInitialView() as [Views] or [Views, InputDelegates] {
+        AuthProvisioner.initialize();
+        AuthProvisioner.requestIfNeeded();
+
         var complicationId = launchedFromComplication;
         if (complicationId == ComplicationsPublisher.ID_WET) {
             return RecordController.recordDiaperInitialView(Store.ACTION_WET);

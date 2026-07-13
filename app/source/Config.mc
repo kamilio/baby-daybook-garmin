@@ -29,6 +29,10 @@ module Config {
 
     (:background)
     function getBabyUid() as String {
+        var provisioned = Storage.getValue("provisionedBabyUid");
+        if (provisioned instanceof String && provisioned.length() > 0) {
+            return provisioned;
+        }
         var value = Properties.getValue("babyUid");
         return (value instanceof String) ? value : "";
     }
