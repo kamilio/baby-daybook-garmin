@@ -5,20 +5,17 @@ from the Garmin fēnix 7 family.
 
 ## Provisioning
 
-The published beta opens a static GitHub Pages form through Garmin's Connect
-IQ authentication hand-off. The page makes no network requests and redirects
-the credentials directly back to the watch.
+The published beta opens a GitHub Pages flow through Garmin's Connect IQ
+authentication hand-off. Sign in with Apple in the separate browser page,
+copy the resulting one-time `intent://callback…` address, and paste it back
+into the provisioning page. This is the same callback mechanism used by the
+Baby Daybook SDK's hosted OAuth flow.
 
-Before launching the app on the watch, copy the refresh token created by the
-local Baby Daybook CLI:
-
-```sh
-./scripts/copy-provisioning-token
-```
-
-Paste it into the form on the phone using Universal Clipboard. Victoria's Baby
-Daybook UID is prefilled. On completion, the watch stores the credentials and
-resumes its pending sync queue.
+The page exchanges that one-time Apple credential directly with Baby Daybook's
+Firebase project, loads the signed-in account's baby profiles, and returns the
+selected baby UID plus refresh token directly to the watch through
+`connectiq://oauth`. The static site has no application server and does not
+persist credentials.
 
 ## Build
 

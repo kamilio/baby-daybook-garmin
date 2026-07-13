@@ -1,20 +1,20 @@
 # Garmin provisioning page
 
 This static page is opened by the watch through Connect IQ's OAuth hand-off.
-It does not submit or persist credentials. The browser redirects directly to
-`connectiq://oauth`, which the Connect IQ mobile app intercepts and returns to
-the watch.
+It implements Baby Daybook's native Apple authentication flow without an
+application server:
+
+1. Open Apple's authorization endpoint with Baby Daybook's registered service
+   ID and callback.
+2. Paste the one-time `intent://callback…` address returned by Apple.
+3. Exchange that credential directly with Firebase Identity Toolkit.
+4. Read the signed-in account's baby profiles directly from Firestore.
+5. Return the chosen baby UID and rotating refresh token to the watch through
+   `connectiq://oauth`.
+
+The Apple credential and Firebase session exist only in page memory. They are
+not persisted in browser storage or submitted to GitHub Pages.
 
 GitHub Actions publishes this directory to:
 
 `https://kamilio.github.io/baby-daybook-garmin/`
-
-Before opening the flow on the watch, copy the locally stored refresh token:
-
-```sh
-./scripts/copy-provisioning-token
-```
-
-On Apple devices with Handoff enabled, Universal Clipboard makes that token
-available to paste in the Connect IQ browser on the phone. The helper never
-prints the token.

@@ -3,30 +3,100 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="color-scheme" content="light">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://identitytoolkit.googleapis.com https://firestore.googleapis.com; base-uri 'none'; form-action 'none'">
   <title>Connect Baby Daybook</title>
+  <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main>
-    <h1>Connect Baby Daybook</h1>
-    <p>On your Mac, run <code>./scripts/copy-provisioning-token</code>. Then paste the copied token below using Universal Clipboard. The values remain in this browser and are returned directly to your Garmin watch.</p>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
 
-    <form id="provisioning-form" autocomplete="off">
-      <label for="refresh-token">Firebase refresh token</label>
-      <textarea id="refresh-token" name="refreshToken" rows="5" required spellcheck="false" autocomplete="off"></textarea>
-      <small>If Universal Clipboard is unavailable, copy the token to your phone through a secure channel you control.</small>
+  <main class="shell">
+    <header class="hero">
+      <img class="app-icon" src="assets/app-icon.svg" alt="">
+      <div>
+        <p class="eyebrow">GARMIN COMPANION</p>
+        <h1>Baby Daybook</h1>
+        <p class="lede">Connect your account to log bottles and diapers right from your wrist.</p>
+      </div>
+    </header>
 
-      <label for="baby-uid">Baby UID</label>
-      <input id="baby-uid" name="babyUid" required value="y0XMz3z4w2JuNDtR7edUp4Y4EkW5PuNx" spellcheck="false" autocomplete="off">
+    <ol class="progress" aria-label="Connection progress">
+      <li class="active" data-progress="1"><span>1</span>Apple</li>
+      <li data-progress="2"><span>2</span>Callback</li>
+      <li data-progress="3"><span>3</span>Baby</li>
+    </ol>
 
-      <button type="submit">Send to Garmin</button>
-    </form>
+    <section class="card active" id="step-apple" data-step="1">
+      <div class="section-icon apple-orb"><img src="assets/apple.svg" alt=""></div>
+      <p class="kicker">Step 1</p>
+      <h2>Sign in with Apple</h2>
+      <p>Use the same Apple account you use with Baby Daybook. Apple opens in a separate page so you can copy its one-time callback.</p>
+      <a id="apple-link" class="button apple-button" target="_blank" rel="noreferrer">
+        <img src="assets/apple.svg" alt="">
+        Continue with Apple
+      </a>
+      <div class="trust-row">
+        <span><img src="assets/shield.svg" alt="">No server storage</span>
+        <span><img src="assets/lock.svg" alt="">Direct to your watch</span>
+      </div>
+    </section>
 
-    <p class="privacy">This static page makes no network requests and does not store either value.</p>
-    <p id="status" role="status" aria-live="polite"></p>
+    <section class="card" id="step-callback" data-step="2" hidden>
+      <div class="section-icon link-orb"><img src="assets/link.svg" alt=""></div>
+      <p class="kicker">Step 2</p>
+      <h2>Paste the callback</h2>
+      <p>After Apple finishes, copy the complete address beginning with <code>intent://callback</code>, return here, and paste it below.</p>
+      <form id="callback-form" autocomplete="off">
+        <label for="callback">Apple callback</label>
+        <textarea id="callback" name="callback" rows="5" required spellcheck="false" autocomplete="off" placeholder="intent://callback?code=…"></textarea>
+        <button class="button primary-button" type="submit">
+          Verify and continue
+          <span aria-hidden="true">→</span>
+        </button>
+      </form>
+      <button class="text-button" type="button" data-back="1">← Back to Apple sign-in</button>
+    </section>
+
+    <section class="card" id="step-baby" data-step="3" hidden>
+      <div class="section-icon heart-orb"><img src="assets/heart.svg" alt=""></div>
+      <p class="kicker">Step 3</p>
+      <h2>Choose a baby</h2>
+      <p>Select the profile this watch should record to.</p>
+      <form id="baby-form">
+        <fieldset id="baby-options">
+          <legend class="sr-only">Baby profiles</legend>
+        </fieldset>
+        <div id="manual-baby" hidden>
+          <label for="baby-uid">Baby UID</label>
+          <input id="baby-uid" name="babyUid" spellcheck="false" autocomplete="off" placeholder="Baby UID">
+        </div>
+        <button class="button primary-button" type="submit">
+          Send to Garmin
+          <img src="assets/watch.svg" alt="">
+        </button>
+      </form>
+    </section>
+
+    <section class="card completion-card" id="step-complete" data-step="4" hidden>
+      <div class="success-mark">✓</div>
+      <p class="kicker">Connected</p>
+      <h2>Returning to your watch</h2>
+      <p>Your credentials are being handed directly to Garmin. You can close this page when the watch updates.</p>
+      <a id="return-link" class="button primary-button">Return to Garmin</a>
+    </section>
+
+    <div id="status" class="status" role="status" aria-live="polite" hidden></div>
+
+    <footer>
+      <img src="assets/shield.svg" alt="">
+      <p>Your Apple credential and Baby Daybook token stay in this browser session and are never sent to this website.</p>
+    </footer>
   </main>
-  <script src="app.js"></script>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>

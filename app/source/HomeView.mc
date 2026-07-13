@@ -1,5 +1,6 @@
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.Time;
 import Toybox.WatchUi;
 
 // Home screen: three full-width horizontal tap zones (Bottle / Wet / Dirty).
@@ -41,7 +42,7 @@ class HomeView extends WatchUi.View {
 
         computeZoneBounds(height);
 
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        dc.setColor(Theme.COLOR_BACKGROUND, Theme.COLOR_BACKGROUND);
         dc.clear();
 
         drawZone(dc, ZONE_BOTTLE, width, "BOTTLE");
@@ -122,74 +123,75 @@ class HomeView extends WatchUi.View {
     // --- drawing ---
 
     function drawZone(dc as Dc, zone as Number, width as Number, label as String) as Void {
+        var action = actionForZone(zone);
+        var active = zone == highlightZone;
+        var sideMargin = (zone == ZONE_WET) ? (width * 0.055).toNumber() : (width * 0.14).toNumber();
+        var verticalMargin = (width * 0.018).toNumber() + 2;
+        var cardTop = zoneTop[zone] + verticalMargin;
+        var cardBottom = zoneBottom[zone] - verticalMargin;
+        var cardHeight = cardBottom - cardTop;
         var centerX = width / 2;
         var centerY = (zoneTop[zone] + zoneBottom[zone]) / 2;
 
-        // The middle zone sits at the display's widest point and can use a
-        // full-size icon/label; top/bottom zones are drawn smaller so they
-        // stay clear of the round bezel's clipped corners.
-        var isMiddle = (zone == ZONE_WET);
-        var iconSize = isMiddle ? (width * 0.20).toNumber() : (width * 0.14).toNumber();
-        var font = isMiddle ? Graphics.FONT_MEDIUM : Graphics.FONT_TINY;
-        var iconY = centerY - (iconSize * 0.55).toNumber();
-        var textY = centerY + (iconSize * 0.55).toNumber();
+        dc.setColor(active ? Theme.COLOR_CARD_ACTIVE : Theme.COLOR_CARD, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(sideMargin, cardTop, width - sideMargin * 2, cardHeight, (width * 0.065).toNumber());
 
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        if (zone == ZONE_BOTTLE) {
-            drawBottleIcon(dc, centerX, iconY, iconSize);
-        } else if (zone == ZONE_WET) {
-            drawDropletIcon(dc, centerX, iconY, iconSize);
-        } else {
-            drawPooIcon(dc, centerX, iconY, iconSize);
+        var iconSize = (cardHeight * 0.62).toNumber();
+        if (iconSize > (width * 0.17).toNumber()) {
+            iconSize = (width * 0.17).toNumber();
         }
+        var iconX = sideMargin + (width * 0.105).toNumber();
+        Theme.drawActionIcon(dc, action, iconX, centerY, iconSize, Theme.actionColor(action));
 
-        dc.drawText(centerX, textY, font, label, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-    }
+        var labelX = iconX + iconSize / 2 + (width * 0.045).toNumber();
+        dc.setColor(Theme.COLOR_TEXT, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(labelX, centerY - (cardHeight * 0.12).toNumber(), Graphics.FONT_SMALL, label,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(Theme.COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(labelX, centerY + (cardHeight * 0.20).toNumber(), Graphics.FONT_XTINY, lastEventLabel(action),
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
 
-    function drawBottleIcon(dc as Dc, cx as Number, cy as Number, size as Number) as Void {
-        var bodyWidth = size;
-        var bodyHeight = (size * 1.1).toNumber();
-        var neckWidth = (size * 0.45).toNumber();
-        var neckHeight = (size * 0.30).toNumber();
-        var capHeight = (size * 0.18).toNumber();
-
-        var bodyTop = cy - bodyHeight / 2 + neckHeight / 2;
-        var neckTop = bodyTop - neckHeight;
-        var capTop = neckTop - capHeight;
-
-        dc.fillRectangle(cx - neckWidth / 2 - 1, capTop, neckWidth + 2, capHeight);
-        dc.fillRectangle(cx - neckWidth / 2, neckTop, neckWidth, neckHeight + 2);
-        dc.fillRoundedRectangle(cx - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight, (size * 0.18).toNumber());
-    }
-
-    function drawDropletIcon(dc as Dc, cx as Number, cy as Number, size as Number) as Void {
-        var r = (size * 0.5).toNumber();
-        dc.fillCircle(cx, cy + r / 2, r);
-        dc.fillPolygon([
-            [cx, cy - r],
-            [cx - r, cy + r / 3],
-            [cx + r, cy + r / 3]
-        ]);
-    }
-
-    function drawPooIcon(dc as Dc, cx as Number, cy as Number, size as Number) as Void {
-        var r1 = (size * 0.30).toNumber();
-        var r2 = (size * 0.24).toNumber();
-        var r3 = (size * 0.18).toNumber();
-        dc.fillCircle(cx, cy + (r1 * 0.5).toNumber(), r1);
-        dc.fillCircle(cx, cy - (r1 * 0.5).toNumber(), r2);
-        dc.fillCircle(cx, cy - (r1 * 1.1 + r3 * 0.3).toNumber(), r3);
+        if (active) {
+            dc.setColor(Theme.actionColor(action), Graphics.COLOR_TRANSPARENT);
+            var dotX = width - sideMargin - (width * 0.075).toNumber();
+            dc.fillCircle(dotX, centerY, (width * 0.018).toNumber() + 1);
+        }
     }
 
     function drawHighlight(dc as Dc, width as Number) as Void {
         var top = zoneTop[highlightZone];
         var bottom = zoneBottom[highlightZone];
-        var margin = (width * 0.02).toNumber() + 2;
+        var margin = (highlightZone == ZONE_WET) ? (width * 0.055).toNumber() : (width * 0.14).toNumber();
+        var verticalMargin = (width * 0.018).toNumber() + 2;
 
-        dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(3);
-        dc.drawRoundedRectangle(margin, top + margin, width - margin * 2, bottom - top - margin * 2, (width * 0.05).toNumber());
+        dc.setColor(Theme.actionColor(actionForZone(highlightZone)), Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawRoundedRectangle(margin, top + verticalMargin, width - margin * 2, bottom - top - verticalMargin * 2, (width * 0.065).toNumber());
         dc.setPenWidth(1);
+    }
+
+    function lastEventLabel(action as String) as String {
+        var last = Store.getLastEventMillis(action);
+        if (last == null) {
+            return "Not logged yet";
+        }
+        var now = (Time.now().value() as Long) * 1000L;
+        var diff = now - last;
+        if (diff < 0) {
+            diff = 0;
+        }
+        var minutes = (diff / 60000).toNumber();
+        if (minutes < 1) {
+            return "Just now";
+        }
+        if (minutes < 60) {
+            return "Last " + minutes.toString() + "m ago";
+        }
+        var hours = minutes / 60;
+        if (hours < 24) {
+            return "Last " + hours.toString() + "h ago";
+        }
+        return "Last " + (hours / 24).toString() + "d ago";
     }
 
     // Pending-sync badge / check-token / queue-full / last-error state, drawn
@@ -199,22 +201,22 @@ class HomeView extends WatchUi.View {
     // each condition replaces the plain pending-count badge rather than
     // stacking with it.
     function drawSyncStatus(dc as Dc, width as Number, height as Number) as Void {
-        var y = height - (height * 0.045).toNumber();
+        var y = (height * 0.92).toNumber();
 
         if (SyncQueue.needsToken()) {
-            dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(width / 2, y, Graphics.FONT_XTINY, "check token", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            dc.setColor(Theme.COLOR_WARNING, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(width / 2, y, Graphics.FONT_XTINY, "SET UP ON PHONE", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
             return;
         }
 
         if (SyncQueue.isQueueOverflowed()) {
-            dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(Theme.COLOR_WARNING, Graphics.COLOR_TRANSPARENT);
             dc.drawText(width / 2, y, Graphics.FONT_XTINY, "queue full", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
             return;
         }
 
         if (hadLastError) {
-            dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(Theme.COLOR_WARNING, Graphics.COLOR_TRANSPARENT);
             dc.drawText(width / 2, y, Graphics.FONT_XTINY, "sync error", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
             return;
         }
@@ -228,12 +230,12 @@ class HomeView extends WatchUi.View {
         var glyphX = width / 2 - glyphR * 2;
         var textX = width / 2 + glyphR;
 
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Theme.COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         dc.drawArc(glyphX, y, glyphR, Graphics.ARC_CLOCKWISE, 30, 300);
         dc.setPenWidth(1);
 
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Theme.COLOR_TEXT, Graphics.COLOR_TRANSPARENT);
         dc.drawText(textX, y, Graphics.FONT_XTINY, pending.toString(), Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 

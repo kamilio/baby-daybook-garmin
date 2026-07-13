@@ -76,26 +76,35 @@ class SuccessView extends WatchUi.View {
         var height = dc.getHeight();
         var centerX = width / 2;
 
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        dc.setColor(Theme.COLOR_BACKGROUND, Theme.COLOR_BACKGROUND);
         dc.clear();
 
-        drawCheckmark(dc, centerX, (height * 0.30).toNumber(), (width * 0.16).toNumber());
+        var accent = successColor();
+        Theme.drawCheck(dc, centerX, (height * 0.31).toNumber(), (width * 0.16).toNumber(), accent);
 
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(centerX, (height * 0.54).toNumber(), Graphics.FONT_MEDIUM, label, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(centerX, (height * 0.68).toNumber(), Graphics.FONT_SMALL, formatClock(recordedMillis), Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(Theme.COLOR_TEXT, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(centerX, (height * 0.55).toNumber(), Graphics.FONT_MEDIUM, label, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(Theme.COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(centerX, (height * 0.67).toNumber(), Graphics.FONT_SMALL, formatClock(recordedMillis), Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
         var synced = isSynced();
-        dc.setColor(synced ? Graphics.COLOR_GREEN : Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(centerX, (height * 0.82).toNumber(), Graphics.FONT_XTINY, synced ? "Synced" : "Queued", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        var pillWidth = (width * 0.34).toNumber();
+        var pillHeight = (height * 0.095).toNumber();
+        var pillY = (height * 0.80).toNumber();
+        dc.setColor(synced ? accent : Theme.COLOR_CARD, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(centerX - pillWidth / 2, pillY - pillHeight / 2, pillWidth, pillHeight, pillHeight / 2);
+        dc.setColor(synced ? Theme.COLOR_TEXT : Theme.COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(centerX, pillY, Graphics.FONT_XTINY, synced ? "SYNCED" : "QUEUED", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
-    function drawCheckmark(dc as Dc, cx as Number, cy as Number, size as Number) as Void {
-        dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth((size * 0.18).toNumber());
-        dc.drawLine(cx - size, cy, cx - (size * 0.2).toNumber(), cy + size);
-        dc.drawLine(cx - (size * 0.2).toNumber(), cy + size, cx + size, cy - size);
-        dc.setPenWidth(1);
+    function successColor() as Number {
+        if (label.equals("Wet diaper")) {
+            return Theme.COLOR_WET;
+        }
+        if (label.equals("Dirty diaper")) {
+            return Theme.COLOR_DIRTY;
+        }
+        return Theme.COLOR_BOTTLE;
     }
 
     // TimeUtil's epoch millis are second-resolution (see TimeUtil.mc); this

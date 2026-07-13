@@ -1,19 +1,235 @@
-const form = document.querySelector("#provisioning-form");
+import {
+  HttpError,
+  appleAuthorizationUrl,
+  decodeFields,
+  firebaseError,
+  parseAppleCallback,
+} from "./auth-core.mjs";
+
+const FIREBASE_API_KEY = "AIzaSyDIjjUS-7888pKeaVgNM1g2lSLOX4i6Na8";
+const FIREBASE_PROJECT_ID = "baby-daybook-app";
+const ANDROID_PACKAGE = "com.drillyapps.babydaybook";
+const ANDROID_CERT = "F63803E1E071269A0DDAB71664A1A55F6F27F8D4";
+
+const state = randomState();
+const appleLink = document.querySelector("#apple-link");
+const callbackForm = document.querySelector("#callback-form");
+const babyForm = document.querySelector("#baby-form");
+const babyOptions = document.querySelector("#baby-options");
+const manualBaby = document.querySelector("#manual-baby");
 const status = document.querySelector("#status");
+const returnLink = document.querySelector("#return-link");
 
-form.addEventListener("submit", (event) => {
+let refreshToken = "";
+
+appleLink.href = appleAuthorizationUrl(state);
+appleLink.addEventListener("click", () => showStep(2));
+
+callbackForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  clearStatus();
+  setLoading(true, "Verifying Apple sign-in…");
 
-  const data = new FormData(form);
-  const refreshToken = String(data.get("refreshToken") || "").trim();
-  const babyUid = String(data.get("babyUid") || "").trim();
+  try {
+    const callback = parseAppleCallback(new FormData(callbackForm).get("callback"), state);
+    const session = await exchangeAppleCredential(callback);
+    refreshToken = session.refreshToken;
+    const babies = await listBabies(session.idToken, session.localId);
+    renderBabies(babies);
+    showStep(3);
+    clearStatus();
+  } catch (error) {
+    showError(readableError(error));
+  } finally {
+    setLoading(false);
+  }
+});
 
+babyForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  clearStatus();
+  const values = new FormData(babyForm);
+  const babyUid = String(values.get("babyUid") || "").trim();
   if (!refreshToken || !babyUid) {
-    status.textContent = "Both values are required.";
+    showError("Choose a baby profile before continuing.");
     return;
   }
 
-  status.textContent = "Returning credentials to Garmin…";
   const params = new URLSearchParams({ refreshToken, babyUid });
-  window.location.assign(`connectiq://oauth?${params.toString()}`);
+  const callbackUrl = `connectiq://oauth?${params.toString()}`;
+  returnLink.href = callbackUrl;
+  showStep(4);
+  window.location.assign(callbackUrl);
 });
+
+document.querySelectorAll("[data-back]").forEach((button) => {
+  button.addEventListener("click", () => showStep(Number(button.dataset.back)));
+});
+
+async function exchangeAppleCredential(credential) {
+  const postBody = new URLSearchParams({
+    providerId: "apple.com",
+    id_token: credential.idToken,
+    access_token: credential.authorizationCode,
+  });
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${encodeURIComponent(FIREBASE_API_KEY)}`,
+    {
+      method: "POST",
+      headers: firebaseHeaders(),
+      body: JSON.stringify({
+        postBody: postBody.toString(),
+        requestUri: "http://localhost",
+        returnIdpCredential: true,
+        returnSecureToken: true,
+      }),
+    },
+  );
+  const body = await response.json();
+  if (!response.ok) throw new Error(firebaseError(body));
+  if (!body.idToken || !body.refreshToken || !body.localId) {
+    throw new Error("Baby Daybook returned an incomplete login session.");
+  }
+  return body;
+}
+
+async function listBabies(idToken, userId) {
+  const [created, accepted] = await Promise.all([
+    listCollection(idToken, `userData/${userId}/createdBabies`),
+    listCollection(idToken, `userData/${userId}/acceptedInvites`),
+  ]);
+  const babyUids = [...new Set([...created, ...accepted]
+    .filter((record) => !record.deleted && typeof record.babyUid === "string")
+    .map((record) => record.babyUid))];
+
+  const babies = await Promise.all(babyUids.map(async (uid) => {
+    const normalizedUid = uid.replace(/^babyUid_/, "");
+    const document = await getDocument(idToken, `babyData/babyUid_${normalizedUid}`);
+    return document ? { ...document, uid: document.uid || normalizedUid } : null;
+  }));
+  return babies.filter((baby) => baby && !baby.deleted);
+}
+
+async function listCollection(idToken, path) {
+  const response = await firestoreRequest(idToken, path);
+  if (!response.documents) return [];
+  return response.documents.map((document) => decodeFields(document.fields || {}));
+}
+
+async function getDocument(idToken, path) {
+  try {
+    const response = await firestoreRequest(idToken, path);
+    return decodeFields(response.fields || {});
+  } catch (error) {
+    if (error instanceof HttpError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+async function firestoreRequest(idToken, path) {
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+  const response = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/${encodedPath}`,
+    { headers: { Authorization: `Bearer ${idToken}` } },
+  );
+  const body = await response.json();
+  if (!response.ok) throw new HttpError(response.status, body?.error?.message || "Could not load Baby Daybook profiles.");
+  return body;
+}
+
+function renderBabies(babies) {
+  babyOptions.replaceChildren();
+  if (babies.length === 0) {
+    manualBaby.hidden = false;
+    showError("No baby profiles were returned. Enter a Baby UID manually.");
+    return;
+  }
+
+  manualBaby.hidden = true;
+  babies.forEach((baby, index) => {
+    const label = document.createElement("label");
+    label.className = "baby-option";
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = "babyUid";
+    input.value = baby.uid;
+    input.required = true;
+    input.checked = babies.length === 1 || baby.name === "Victoria" || (index === 0 && !babies.some((item) => item.name === "Victoria"));
+
+    const content = document.createElement("span");
+    content.className = "baby-option-content";
+    const avatar = document.createElement("span");
+    avatar.className = "baby-avatar";
+    avatar.textContent = (baby.name || "B").slice(0, 1).toUpperCase();
+    const detail = document.createElement("span");
+    const name = document.createElement("span");
+    name.className = "baby-name";
+    name.textContent = baby.name || "Baby Daybook profile";
+    const meta = document.createElement("span");
+    meta.className = "baby-meta";
+    meta.textContent = baby.gender ? `${capitalize(baby.gender)} profile` : "Baby Daybook profile";
+    detail.append(name, meta);
+    const mark = document.createElement("span");
+    mark.className = "radio-mark";
+    content.append(avatar, detail, mark);
+    label.append(input, content);
+    babyOptions.append(label);
+  });
+}
+
+function firebaseHeaders() {
+  return {
+    "Content-Type": "application/json",
+    "X-Android-Package": ANDROID_PACKAGE,
+    "X-Android-Cert": ANDROID_CERT,
+  };
+}
+
+function showStep(step) {
+  document.querySelectorAll("[data-step]").forEach((section) => {
+    const active = Number(section.dataset.step) === step;
+    section.hidden = !active;
+    section.classList.toggle("active", active);
+  });
+  document.querySelectorAll("[data-progress]").forEach((item) => {
+    const itemStep = Number(item.dataset.progress);
+    item.classList.toggle("active", itemStep === step);
+    item.classList.toggle("done", itemStep < step);
+    const badge = item.querySelector("span");
+    badge.textContent = itemStep < step ? "✓" : String(itemStep);
+  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function setLoading(loading, message = "") {
+  callbackForm.querySelector("button[type=submit]").disabled = loading;
+  if (loading) {
+    status.hidden = false;
+    status.className = "status loading";
+    status.textContent = message;
+  }
+}
+
+function showError(message) {
+  status.hidden = false;
+  status.className = "status";
+  status.textContent = message;
+}
+
+function clearStatus() {
+  status.hidden = true;
+  status.textContent = "";
+}
+
+function randomState() {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function readableError(error) {
+  return error instanceof Error ? error.message : "Something went wrong. Please try again.";
+}
+
+function capitalize(value) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}

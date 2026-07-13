@@ -39,7 +39,7 @@ class BottleConfirmView extends WatchUi.View {
 
         computeZoneBounds(width, height);
 
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        dc.setColor(Theme.COLOR_BACKGROUND, Theme.COLOR_BACKGROUND);
         dc.clear();
 
         drawTitle(dc, width);
@@ -104,58 +104,53 @@ class BottleConfirmView extends WatchUi.View {
 
     function drawTitle(dc as Dc, width as Number) as Void {
         var centerX = width / 2;
-        var iconSize = (width * 0.14).toNumber();
-        var iconY = (amountTop * 0.35).toNumber();
-
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        drawBottleIcon(dc, centerX, iconY, iconSize);
-        dc.drawText(centerX, (amountTop * 0.75).toNumber(), Graphics.FONT_MEDIUM, "Bottle", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-    }
-
-    function drawBottleIcon(dc as Dc, cx as Number, cy as Number, size as Number) as Void {
-        var bodyWidth = size;
-        var bodyHeight = (size * 1.1).toNumber();
-        var neckWidth = (size * 0.45).toNumber();
-        var neckHeight = (size * 0.30).toNumber();
-        var capHeight = (size * 0.18).toNumber();
-
-        var bodyTop = cy - bodyHeight / 2 + neckHeight / 2;
-        var neckTop = bodyTop - neckHeight;
-        var capTop = neckTop - capHeight;
-
-        dc.fillRectangle(cx - neckWidth / 2 - 1, capTop, neckWidth + 2, capHeight);
-        dc.fillRectangle(cx - neckWidth / 2, neckTop, neckWidth, neckHeight + 2);
-        dc.fillRoundedRectangle(cx - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight, (size * 0.18).toNumber());
+        Theme.drawActionIcon(dc, Store.ACTION_BOTTLE, centerX, (amountTop * 0.34).toNumber(), (width * 0.16).toNumber(), Theme.COLOR_BOTTLE);
+        dc.setColor(Theme.COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(centerX, (amountTop * 0.75).toNumber(), Graphics.FONT_XTINY, "BOTTLE AMOUNT", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     function drawAmount(dc as Dc, width as Number) as Void {
         var centerY = (amountTop + amountBottom) / 2;
 
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(width / 2, centerY, Graphics.FONT_NUMBER_MEDIUM, amountText(), Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        var cardMargin = (width * 0.11).toNumber();
+        var cardTop = amountTop + (width * 0.02).toNumber();
+        var cardBottom = amountBottom - (width * 0.025).toNumber();
+        dc.setColor(Theme.COLOR_CARD, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(cardMargin, cardTop, width - cardMargin * 2, cardBottom - cardTop, (width * 0.075).toNumber());
+
+        dc.setColor(Theme.COLOR_TEXT, Graphics.COLOR_TRANSPARENT);
+        var value = (amountMl == null) ? "--" : amountMl.toString();
+        dc.drawText(width / 2, centerY - (width * 0.035).toNumber(), Graphics.FONT_NUMBER_MEDIUM, value, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(Theme.COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(width / 2, centerY + (width * 0.11).toNumber(), Graphics.FONT_XTINY, (amountMl == null) ? "NO AMOUNT" : "MILLILITERS", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
         var minusCanStep = (amountMl != null);
         var plusCanStep = (amountMl == null) || (amountMl < Config.getBottleMaxMl());
 
-        dc.setColor(minusCanStep ? Graphics.COLOR_WHITE : Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(minusRight / 2, centerY, Graphics.FONT_LARGE, "-", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        var buttonR = (width * 0.072).toNumber();
+        var minusX = minusRight / 2;
+        var plusX = plusLeft + (width - plusLeft) / 2;
+        dc.setColor(minusCanStep ? Theme.COLOR_CARD_ACTIVE : Theme.COLOR_CARD, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(minusX, centerY, buttonR);
+        dc.setColor(minusCanStep ? Theme.COLOR_TEXT : Theme.COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(minusX, centerY - 1, Graphics.FONT_MEDIUM, "-", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-        dc.setColor(plusCanStep ? Graphics.COLOR_WHITE : Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(plusLeft + (width - plusLeft) / 2, centerY, Graphics.FONT_LARGE, "+", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(plusCanStep ? Theme.COLOR_BOTTLE : Theme.COLOR_CARD, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(plusX, centerY, buttonR);
+        dc.setColor(plusCanStep ? Theme.COLOR_TEXT : Theme.COLOR_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(plusX, centerY - 1, Graphics.FONT_MEDIUM, "+", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     function drawConfirmButton(dc as Dc, width as Number, height as Number) as Void {
-        var margin = (width * 0.08).toNumber();
+        var margin = (width * 0.20).toNumber();
         var top = confirmTop + (width * 0.03).toNumber();
         var bottom = height - (width * 0.06).toNumber();
         var centerY = (top + bottom) / 2;
 
-        dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(3);
-        dc.drawRoundedRectangle(margin, top, width - margin * 2, bottom - top, (width * 0.08).toNumber());
-        dc.setPenWidth(1);
-
-        dc.drawText(width / 2, centerY, Graphics.FONT_MEDIUM, "CONFIRM", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(Theme.COLOR_BOTTLE, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(margin, top, width - margin * 2, bottom - top, (width * 0.08).toNumber());
+        dc.setColor(Theme.COLOR_TEXT, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(width / 2, centerY, Graphics.FONT_SMALL, "SAVE BOTTLE", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
 }
