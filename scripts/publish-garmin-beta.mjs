@@ -18,6 +18,7 @@ function usage() {
   console.log(`Usage:
   npm run garmin:login
   npm run garmin:publish -- --version VERSION --notes TEXT [options]
+  npm run garmin:publish -- --install-only [--headless]
 
 Options:
   --file PATH       IQ package (default: app/bin/BabyDaybook-beta.iq)
@@ -25,6 +26,7 @@ Options:
   --notes TEXT      English release notes
   --dry-run         Validate and print the plan without opening a browser
   --login           Open Garmin Developer and save an authenticated profile
+  --install-only    Queue the already-published beta to the selected device
   --headless        Run without a visible browser (not recommended initially)
   --help            Show this help
 
@@ -40,12 +42,14 @@ function parseArgs(argv) {
     notes: "",
     dryRun: false,
     login: false,
+    installOnly: false,
     headless: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--dry-run") result.dryRun = true;
     else if (arg === "--login") result.login = true;
+    else if (arg === "--install-only") result.installOnly = true;
     else if (arg === "--headless") result.headless = true;
     else if (arg === "--help" || arg === "-h") result.help = true;
     else if (["--file", "--version", "--notes"].includes(arg)) {
@@ -61,7 +65,7 @@ function parseArgs(argv) {
 }
 
 async function validate(options) {
-  if (options.login) return;
+  if (options.login || options.installOnly) return;
   if (!options.version) throw new Error("--version is required");
   if (options.version.length > 20) throw new Error("--version must be at most 20 characters");
   if (!options.notes.trim()) throw new Error("--notes is required");
@@ -130,6 +134,7 @@ async function publish(options, profile, appId) {
       const versionOnListing = page.getByText(`Version ${options.version}`, { exact: true });
       if (await visible(versionOnListing)) {
         console.log(`Published Garmin beta ${options.version}`);
+        await queueInstallation(page);
         return;
       }
 
@@ -162,6 +167,43 @@ async function publish(options, profile, appId) {
   }
 }
 
+async function installOnly(options, profile, appId) {
+  const context = await openContext(profile, options.headless);
+  const page = context.pages()[0] ?? await context.newPage();
+  try {
+    await page.goto(`https://apps-developer.garmin.com/apps/${appId}`, { waitUntil: "domcontentloaded" });
+    await queueInstallation(page);
+  } finally {
+    await context.close();
+  }
+}
+
+async function queueInstallation(page) {
+  const download = page.getByRole("button", { name: /Download/i });
+  await download.waitFor({ state: "visible", timeout: 15_000 });
+  await download.click();
+  const acceptTerms = page.getByRole("button", { name: "Accept Terms" });
+  if (await visible(acceptTerms, 2_000)) {
+    await acceptTerms.click();
+    if (!await visible(page.getByRole("button", { name: "Confirm Device" }), 2_000)) {
+      await download.click();
+    }
+  }
+  const confirm = page.getByRole("button", { name: "Confirm Device" });
+  if (!await visible(confirm, 10_000)) {
+    await mkdir("output/playwright", { recursive: true });
+    await page.screenshot({ path: "output/playwright/garmin-install-error.png", fullPage: true });
+    throw new Error(`Garmin device chooser did not open (buttons: ${(await page.getByRole("button").allTextContents()).join(", ")})`);
+  }
+  await confirm.click();
+  const allow = page.getByRole("button", { name: "Allow" });
+  await allow.waitFor({ state: "visible", timeout: 10_000 });
+  await allow.click();
+  await page.getByText(/will be installed the next time your device syncs/i)
+    .waitFor({ state: "visible", timeout: 15_000 });
+  console.log("Queued Garmin beta for installation on the selected device");
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
@@ -174,6 +216,10 @@ async function main() {
   const appId = process.env.GARMIN_APP_ID || DEFAULT_APP_ID;
   if (options.login) {
     await login(profile);
+    return;
+  }
+  if (options.installOnly) {
+    await installOnly(options, profile, appId);
     return;
   }
 
