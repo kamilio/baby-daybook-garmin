@@ -7,6 +7,7 @@ class SyncDiagnosticsMenu extends WatchUi.Menu2 {
         addItem(new WatchUi.MenuItem("Configuration", configurationText(), :configuration, null));
         addItem(new WatchUi.MenuItem("Import settings", "Reads pasted setup values", :settings, null));
         addItem(new WatchUi.MenuItem("Token refresh", "Tests Firebase authentication", :token, null));
+        addItem(new WatchUi.MenuItem("Fly relay", "Primary sync transport", :relay, null));
         addItem(new WatchUi.MenuItem("Direct Firestore", "Tests Garmin header support", :firestore, null));
         addItem(new WatchUi.MenuItem("Phone handoff", "Experimental notification path", :phone_sync, null));
         addItem(new WatchUi.MenuItem("Queue", queueText(), :result, null));
@@ -39,6 +40,8 @@ class SyncDiagnosticsMenuDelegate extends WatchUi.Menu2InputDelegate {
             BrowserSync.request();
         } else if (id == :token) {
             SyncDiagnostics.testTokenRefresh();
+        } else if (id == :relay) {
+            RelaySync.request();
         } else if (id == :firestore) {
             SyncDiagnostics.testFirestoreDirect();
         } else if (id == :settings) {

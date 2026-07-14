@@ -43,7 +43,7 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
         addItem(new WatchUi.MenuItem("Bottle", BabyDaybookMenu.lastEventLabel(Store.ACTION_BOTTLE), :bottle, null));
         addItem(new WatchUi.MenuItem("Wet diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_WET), :wet, null));
         addItem(new WatchUi.MenuItem("Dirty diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_DIRTY), :dirty, null));
-        syncItem = new WatchUi.MenuItem("Sync · v0.11", statusText(), :sync, null);
+        syncItem = new WatchUi.MenuItem("Sync · v0.12", statusText(), :sync, null);
         addItem(syncItem);
         addItem(new WatchUi.MenuItem("Diagnostics", "Test each sync method", :diagnostics, null));
     }
@@ -77,7 +77,7 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
         if (Store.getQueueLastError()) {
             return "Error " + code.toString() + " · " + pending.toString() + " retained";
         }
-        if (SyncQueue.isFlushing()) {
+        if (SyncQueue.isFlushing() || RelaySync.isSyncing()) {
             if (stage.equals("token_request") || stage.equals("auth")) {
                 return "Authenticating · " + pending.toString() + " queued";
             }
@@ -124,7 +124,7 @@ class BabyDaybookMenuDelegate extends WatchUi.Menu2InputDelegate {
                 return;
             }
             Store.setQueueLastError(false);
-            BrowserSync.request();
+            RelaySync.request();
         } else if (id == :diagnostics) {
             var diagnostics = new SyncDiagnosticsMenu();
             WatchUi.pushView(diagnostics, new SyncDiagnosticsMenuDelegate(), WatchUi.SLIDE_UP);

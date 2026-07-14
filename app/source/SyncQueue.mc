@@ -323,6 +323,17 @@ module SyncQueue {
         notifyChanged();
     }
 
+    function acknowledgeRelaySync(ids as Array) as Void {
+        for (var i = 0; i < ids.size(); i++) {
+            if (ids[i] instanceof String) { removeItemById(ids[i]); }
+        }
+        Store.setQueueLastError(false);
+        Store.setQueueNeedsToken(false);
+        Store.setLastSyncMillis(TimeUtil.nowEpochMillis());
+        Store.setSyncDiagnostic("relay_synced", 200);
+        notifyChanged();
+    }
+
     (:background)
     function incrementAttemptsById(id as String?) as Void {
         var queue = Store.getSyncQueue();
