@@ -1,6 +1,10 @@
 <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="40" height="40" rx="6" fill="#2E7D8C"/>
-<rect x="16" y="6" width="8" height="4" rx="1" fill="#F4F4F4"/>
-<path d="M14 10H26L24 15V32C24 33.6569 22.6569 35 21 35H19C17.3431 35 16 33.6569 16 32V15L14 10Z" fill="#F4F4F4"/>
-<rect x="17" y="19" width="6" height="2" fill="#2E7D8C"/>
+<rect width="40" height="40" rx="8" fill="#087F8C"/>
+<!-- Soft nipple + broad collar make the baby bottle recognizable at 40 px. -->
+<path d="M17 8C17 4.7 18.4 3 20 3C21.6 3 23 4.7 23 8H17Z" fill="#FFF7E6"/>
+<rect x="14" y="8" width="12" height="5" rx="2" fill="#FFF7E6"/>
+<!-- Wide shouldered bottle, unlike the old narrow test-tube silhouette. -->
+<path d="M15 13H25V16L28 20V31C28 34.3 25.3 37 22 37H18C14.7 37 12 34.3 12 31V20L15 16V13Z" fill="#FFF7E6"/>
+<path d="M14 25H26V31C26 33.2 24.2 35 22 35H18C15.8 35 14 33.2 14 31V25Z" fill="#FFC857"/>
+<path d="M16 19H20M16 22H18" stroke="#087F8C" stroke-width="1.8" stroke-linecap="round"/>
 </svg>

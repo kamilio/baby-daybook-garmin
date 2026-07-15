@@ -19,14 +19,11 @@ class BabyDaybookApp extends Application.AppBase {
         AppBase.initialize();
     }
 
-    // Runs in both the foreground app and every background wake (the
-    // background process instantiates AppBase too, calling onStart() before
-    // getServiceDelegate()/onTemporalEvent()) -- registerBackgroundSync()'s
-    // own already-registered check keeps repeat calls here cheap.
+    // Runs in foreground, background, and glance processes. Keep it free of
+    // storage/network/background-registration work so glance startup stays
+    // lightweight.
     (:background)
     function onStart(state as Dictionary?) as Void {
-        registerBackgroundSync();
-
         // :launchedFromComplication is the complication index (Bottle=0,
         // Wet=1, Dirty=2 -- ComplicationsPublisher.ID_*) the app was
         // launched from, present only when a watch face called
@@ -37,6 +34,7 @@ class BabyDaybookApp extends Application.AppBase {
 
     function onSettingsChanged() as Void {
         SettingsProvisioner.applyFromProperties();
+        registerBackgroundSync();
     }
 
     (:background)
@@ -88,6 +86,10 @@ class BabyDaybookApp extends Application.AppBase {
     }
 
     function getInitialView() as [Views] or [Views, InputDelegates] {
+        // Registration is persistent. Do this only for the full app, never
+        // during the glance lifecycle, where Background API calls delay the
+        // carousel frame and make scrolling feel sticky.
+        registerBackgroundSync();
         SettingsProvisioner.applyFromProperties();
         var complicationId = launchedFromComplication;
         if (complicationId == ComplicationsPublisher.ID_WET) {

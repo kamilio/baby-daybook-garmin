@@ -29,6 +29,9 @@ module BabyDaybookMenu {
 
 class BabyDaybookNativeMenu extends WatchUi.Menu2 {
     var syncItem as WatchUi.MenuItem;
+    var bottleItem as WatchUi.MenuItem;
+    var wetItem as WatchUi.MenuItem;
+    var dirtyItem as WatchUi.MenuItem;
 
     function initialize() {
         Menu2.initialize({ :title => "Baby Daybook" });
@@ -40,9 +43,12 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
                 null
             ));
         }
-        addItem(new WatchUi.MenuItem("Bottle", BabyDaybookMenu.lastEventLabel(Store.ACTION_BOTTLE), :bottle, null));
-        addItem(new WatchUi.MenuItem("Wet diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_WET), :wet, null));
-        addItem(new WatchUi.MenuItem("Dirty diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_DIRTY), :dirty, null));
+        bottleItem = new WatchUi.MenuItem("Bottle", BabyDaybookMenu.lastEventLabel(Store.ACTION_BOTTLE), :bottle, null);
+        wetItem = new WatchUi.MenuItem("Wet diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_WET), :wet, null);
+        dirtyItem = new WatchUi.MenuItem("Dirty diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_DIRTY), :dirty, null);
+        addItem(bottleItem);
+        addItem(wetItem);
+        addItem(dirtyItem);
         syncItem = new WatchUi.MenuItem("Sync", statusText(), :sync, null);
         addItem(syncItem);
     }
@@ -61,6 +67,9 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
     }
 
     function refreshStatus() as Void {
+        bottleItem.setSubLabel(BabyDaybookMenu.lastEventLabel(Store.ACTION_BOTTLE));
+        wetItem.setSubLabel(BabyDaybookMenu.lastEventLabel(Store.ACTION_WET));
+        dirtyItem.setSubLabel(BabyDaybookMenu.lastEventLabel(Store.ACTION_DIRTY));
         syncItem.setSubLabel(statusText());
         WatchUi.requestUpdate();
     }

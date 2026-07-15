@@ -5,8 +5,8 @@ import Toybox.Lang;
 // resources/complications.xml, ids matching Store.ACTION_* below and the
 // complication-launch-routing task's Bottle=0/Wet=1/Dirty=2 mapping) with a
 // compact "time since last event" value. (:background)-safe: called from
-// RecordController after every record, from BabyDaybookApp.onStart(), and
-// from BackgroundServiceDelegate at the end of every temporal wake, so the
+// RecordController after every record, RelaySync after an upstream pull,
+// and BackgroundServiceDelegate at the end of every temporal wake, so the
 // published age stays fresh within the sync interval even while the app is
 // closed. No UI imports -- Toybox.Complications is a data-publish API, not
 // a WatchUi one.

@@ -16,13 +16,12 @@ module RelaySync {
     function request() as Boolean {
         if (syncing) { return false; }
         var events = batch(Store.getSyncQueue());
-        if (events.size() == 0) {
-            Store.setSyncDiagnostic("relay_empty", 0);
-            return false;
-        }
         syncing = true;
         Store.setQueueLastError(false);
         Store.setSyncDiagnostic("relay_uploading", 0);
+        // Make manual Sync immediately repaint as loading, including a
+        // pull-only sync with no queued uploads.
+        SyncQueue.notifyChanged();
         var body = {
             "refreshToken" => Config.getRefreshToken(),
             "babyUid" => Config.getBabyUid(),
@@ -68,6 +67,8 @@ module RelaySync {
             var userId = data.get("userId");
             if (acked instanceof Array && refreshToken instanceof String && userId instanceof String) {
                 Store.setAuthCache("", 0, userId, refreshToken);
+                applyLatest(data.get("latest"));
+                ComplicationsPublisher.updateAll();
                 SyncQueue.acknowledgeRelaySync(acked);
                 syncing = false;
                 if (SyncQueue.pendingCount() > 0) {
@@ -83,5 +84,21 @@ module RelaySync {
         Store.setQueueNeedsToken(code == 401);
         Store.setSyncDiagnostic("relay_failed", code);
         SyncQueue.notifyChanged();
+    }
+
+    (:background)
+    function applyLatest(value as Object?) as Void {
+        if (!(value instanceof Dictionary)) { return; }
+        applyLatestOne(value, "bottle", Store.ACTION_BOTTLE);
+        applyLatestOne(value, "wet", Store.ACTION_WET);
+        applyLatestOne(value, "dirty", Store.ACTION_DIRTY);
+    }
+
+    (:background)
+    function applyLatestOne(latest as Dictionary, key as String, action as String) as Void {
+        var value = latest.get(key);
+        if (value instanceof Number || value instanceof Long) {
+            Store.setLastEventMillis(action, value);
+        }
     }
 }

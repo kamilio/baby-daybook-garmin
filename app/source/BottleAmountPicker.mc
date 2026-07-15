@@ -11,7 +11,7 @@ class BottleAmountFactory extends WatchUi.PickerFactory {
         PickerFactory.initialize();
         minimum = Config.getBottleMinOz();
         maximum = Config.getBottleMaxOz();
-        step = 0.5d;
+        step = 1;
     }
 
     function getDrawable(index as Number, selected as Boolean) as WatchUi.Drawable? {
