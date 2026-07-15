@@ -3,20 +3,20 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 class BottleAmountFactory extends WatchUi.PickerFactory {
-    var minimum as Number;
-    var maximum as Number;
-    var step as Number;
+    var minimum as Numeric;
+    var maximum as Numeric;
+    var step as Numeric;
 
     function initialize() {
         PickerFactory.initialize();
-        minimum = Config.getBottleMinMl();
-        maximum = Config.getBottleMaxMl();
-        step = Config.getBottleStepMl();
+        minimum = Config.getBottleMinOz();
+        maximum = Config.getBottleMaxOz();
+        step = 0.5d;
     }
 
     function getDrawable(index as Number, selected as Boolean) as WatchUi.Drawable? {
         return new WatchUi.Text({
-            :text => getValue(index).toString() + " ml",
+            :text => BottleUnits.formatOunces(getValue(index) as Numeric) + " oz",
             :color => Graphics.COLOR_WHITE,
             :font => Graphics.FONT_NUMBER_MEDIUM,
             :locX => WatchUi.LAYOUT_HALIGN_CENTER,
@@ -32,7 +32,7 @@ class BottleAmountFactory extends WatchUi.PickerFactory {
         return ((maximum - minimum) / step) + 1;
     }
 
-    function indexFor(value as Number) as Number {
+    function indexFor(value as Numeric) as Number {
         var clamped = value;
         if (clamped < minimum) { clamped = minimum; }
         if (clamped > maximum) { clamped = maximum; }
@@ -46,8 +46,8 @@ class BottleAmountPicker extends WatchUi.Picker {
     function initialize(exitAfter as Boolean) {
         exitOnConfirm = exitAfter;
         var factory = new BottleAmountFactory();
-        var last = Store.getLastBottleMl();
-        var initial = (last != null) ? last : Config.getDefaultBottleMl();
+        var last = Store.getLastBottleOz();
+        var initial = (last != null) ? last : Config.getDefaultBottleOz();
         var title = new WatchUi.Text({
             :text => "Bottle amount",
             :color => Graphics.COLOR_WHITE,
@@ -71,8 +71,8 @@ class BottleAmountPickerDelegate extends WatchUi.PickerDelegate {
     }
 
     function onAccept(values as Array) as Boolean {
-        var amount = values[0] as Number;
-        Store.setLastBottleMl(amount);
+        var amount = values[0] as Numeric;
+        Store.setLastBottleOz(amount);
         if (!picker.exitOnConfirm) {
             WatchUi.popView(WatchUi.SLIDE_DOWN);
         }

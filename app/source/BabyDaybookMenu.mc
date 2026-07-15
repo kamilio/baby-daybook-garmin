@@ -43,9 +43,8 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
         addItem(new WatchUi.MenuItem("Bottle", BabyDaybookMenu.lastEventLabel(Store.ACTION_BOTTLE), :bottle, null));
         addItem(new WatchUi.MenuItem("Wet diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_WET), :wet, null));
         addItem(new WatchUi.MenuItem("Dirty diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_DIRTY), :dirty, null));
-        syncItem = new WatchUi.MenuItem("Sync · v0.12", statusText(), :sync, null);
+        syncItem = new WatchUi.MenuItem("Sync", statusText(), :sync, null);
         addItem(syncItem);
-        addItem(new WatchUi.MenuItem("Diagnostics", "Test each sync method", :diagnostics, null));
     }
 
     function onShow() as Void {
@@ -77,7 +76,7 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
         if (Store.getQueueLastError()) {
             return "Error " + code.toString() + " · " + pending.toString() + " retained";
         }
-        if (SyncQueue.isFlushing() || RelaySync.isSyncing()) {
+        if (RelaySync.isSyncing()) {
             if (stage.equals("token_request") || stage.equals("auth")) {
                 return "Authenticating · " + pending.toString() + " queued";
             }
@@ -91,7 +90,7 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
                 return "Offline " + code.toString() + " · " + pending.toString() + " queued";
             }
             if (stage.equals("token_rejected") || stage.equals("auth_required")) {
-                return "Authentication failed · " + pending.toString() + " queued";
+                return "Auth error " + code.toString() + " · " + pending.toString() + " queued";
             }
             return pending.toString() + " queued · tap to retry";
         }
@@ -125,9 +124,6 @@ class BabyDaybookMenuDelegate extends WatchUi.Menu2InputDelegate {
             }
             Store.setQueueLastError(false);
             RelaySync.request();
-        } else if (id == :diagnostics) {
-            var diagnostics = new SyncDiagnosticsMenu();
-            WatchUi.pushView(diagnostics, new SyncDiagnosticsMenuDelegate(), WatchUi.SLIDE_UP);
         } else if (id == :bottle) {
             var picker = new BottleAmountPicker(false);
             WatchUi.pushView(picker, new BottleAmountPickerDelegate(picker), WatchUi.SLIDE_UP);

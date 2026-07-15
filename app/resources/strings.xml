@@ -13,8 +13,7 @@
     <string id="ManualRefreshTokenTitle">Advanced setup: refresh token (use with Baby UID)</string>
     <string id="ManualBabyUidTitle">Advanced setup: Baby UID (use with refresh token)</string>
     <string id="SyncIntervalMinutesTitle">Sync interval (minutes)</string>
-    <string id="DefaultBottleMlTitle">Default bottle amount (ml)</string>
-    <string id="BottleStepMlTitle">Bottle step (ml)</string>
-    <string id="BottleMinMlTitle">Bottle minimum (ml)</string>
-    <string id="BottleMaxMlTitle">Bottle maximum (ml)</string>
+    <string id="DefaultBottleOzTitle">Default bottle amount (oz)</string>
+    <string id="BottleMinOzTitle">Bottle minimum (oz)</string>
+    <string id="BottleMaxOzTitle">Bottle maximum (oz)</string>
 </strings>

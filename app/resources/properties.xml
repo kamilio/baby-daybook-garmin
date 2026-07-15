@@ -17,9 +17,8 @@
     <!-- Minutes between background sync flushes; runtime floor is 5 (Config.mc). -->
     <property id="syncIntervalMinutes" type="number">15</property>
 
-    <property id="defaultBottleMl" type="number">120</property>
-    <property id="bottleStepMl" type="number">10</property>
-    <property id="bottleMinMl" type="number">30</property>
-    <property id="bottleMaxMl" type="number">300</property>
+    <property id="defaultBottleOz" type="number">4</property>
+    <property id="bottleMinOz" type="number">1</property>
+    <property id="bottleMaxOz" type="number">10</property>
 
 </properties>

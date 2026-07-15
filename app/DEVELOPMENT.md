@@ -67,10 +67,9 @@ Properties:
 | `refreshToken`        | string | `""`    | Firebase refresh token (~200 chars). Secret — masked as a password field in the simulator settings editor. |
 | `babyUid`              | string | `""`    | Baby UID from `baby-daybook babies list`. |
 | `syncIntervalMinutes` | number | `15`    | Background sync interval; runtime floor is 5 (`Config.SYNC_INTERVAL_MINUTES_FLOOR`), the Connect IQ temporal-event minimum. |
-| `defaultBottleMl`     | number | `120`   | Prefill amount when no bottle has been recorded yet. |
-| `bottleStepMl`        | number | `10`    | −/+ stepper increment on the bottle confirm screen. |
-| `bottleMinMl`         | number | `30`    | Stepping at/below this shows "— ml" (record without an amount). |
-| `bottleMaxMl`         | number | `300`   | Upper stepper bound. |
+| `defaultBottleOz`     | number | `4`     | Prefill amount when no bottle has been recorded yet. |
+| `bottleMinOz`         | number | `1`     | Lower picker bound; the native picker advances by 0.5 oz. |
+| `bottleMaxOz`         | number | `10`    | Upper picker bound. |
 
 ### Setting real values before building
 

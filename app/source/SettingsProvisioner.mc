@@ -1,4 +1,5 @@
 import Toybox.Application.Properties;
+import Toybox.Application.Storage;
 import Toybox.Lang;
 
 // Connect IQ settings are a dependable cross-phone handoff: finish setup in
@@ -28,7 +29,7 @@ module SettingsProvisioner {
                 return false;
             }
         }
-        if (!AuthProvisioner.applyCredentials(data)) {
+        if (!applyCredentials(data)) {
             Store.setSyncDiagnostic("settings_invalid", 400);
             return false;
         }
@@ -38,6 +39,19 @@ module SettingsProvisioner {
         Store.setQueueNeedsToken(false);
         Store.setQueueLastError(false);
         Store.setSyncDiagnostic("settings_ok", 200);
+        return true;
+    }
+
+    function applyCredentials(data as Dictionary?) as Boolean {
+        if (data == null) { return false; }
+        var refreshToken = data.get("refreshToken");
+        var babyUid = data.get("babyUid");
+        if (!(refreshToken instanceof String) || refreshToken.length() == 0 ||
+            !(babyUid instanceof String) || babyUid.length() == 0) {
+            return false;
+        }
+        Store.setAuthCache("", 0, "", refreshToken);
+        Storage.setValue("provisionedBabyUid", babyUid);
         return true;
     }
 

@@ -7,7 +7,7 @@ import Toybox.WatchUi;
 // Selecting it opens the normal home view; it can't perform actions itself.
 // (:glance)-tagged, and only ever touches Store.mc's (:glance)-tagged
 // accessors, so the glance's ~32 KB memory budget never pulls in the
-// network stack (TokenClient/FirestoreClient/SyncQueue's flush path).
+// Fly transport (RelaySync).
 (:glance)
 class GlanceView extends WatchUi.GlanceView {
 
@@ -21,6 +21,10 @@ class GlanceView extends WatchUi.GlanceView {
         var width = dc.getWidth();
         var height = dc.getHeight();
 
+        // Glances may reuse their drawing surface. Clear it explicitly to
+        // prevent stale pixels/flicker between carousel frames.
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        dc.clear();
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
 
         dc.drawText(width / 2, (height * 0.32).toNumber(), Graphics.FONT_XTINY, "Baby Daybook",
@@ -71,7 +75,7 @@ class GlanceView extends WatchUi.GlanceView {
     // fonts don't reliably cover symbol glyphs (see HomeView's own note on
     // emoji fonts).
     function drawSyncBadge(dc as Dc, width as Number, height as Number) as Void {
-        var pending = Store.getSyncQueue().size();
+        var pending = Store.getPendingCount();
         if (pending <= 0) {
             return;
         }

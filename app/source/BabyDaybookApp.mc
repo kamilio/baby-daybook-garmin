@@ -26,7 +26,6 @@ class BabyDaybookApp extends Application.AppBase {
     (:background)
     function onStart(state as Dictionary?) as Void {
         registerBackgroundSync();
-        ComplicationsPublisher.updateAll();
 
         // :launchedFromComplication is the complication index (Bottle=0,
         // Wet=1, Dirty=2 -- ComplicationsPublisher.ID_*) the app was
@@ -89,7 +88,6 @@ class BabyDaybookApp extends Application.AppBase {
     }
 
     function getInitialView() as [Views] or [Views, InputDelegates] {
-        AuthProvisioner.initialize();
         SettingsProvisioner.applyFromProperties();
         var complicationId = launchedFromComplication;
         if (complicationId == ComplicationsPublisher.ID_WET) {

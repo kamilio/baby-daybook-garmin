@@ -5,11 +5,14 @@ import Toybox.Lang;
 // request body because Garmin rejects Firestore's long Authorization header.
 // The Fly relay performs the authenticated Firestore commit and returns only
 // acknowledged event IDs plus Firebase's rotated refresh token.
+(:background)
 module RelaySync {
     const SYNC_URL = "https://baby-daybook-kjopek.fly.dev/garmin/sync";
     const MAX_BATCH_SIZE = 10;
+    (:background)
     var syncing = false;
 
+    (:background)
     function request() as Boolean {
         if (syncing) { return false; }
         var events = batch(Store.getSyncQueue());
@@ -34,8 +37,10 @@ module RelaySync {
         return true;
     }
 
+    (:background)
     function isSyncing() as Boolean { return syncing; }
 
+    (:background)
     function batch(queue as Array) as Array {
         var result = [];
         var count = queue.size();
@@ -55,8 +60,8 @@ module RelaySync {
         return result;
     }
 
+    (:background)
     function onResponse(code as Number, data as Dictionary or String or Null) as Void {
-        syncing = false;
         if (code >= 200 && code < 300 && data instanceof Dictionary) {
             var acked = data.get("acked");
             var refreshToken = data.get("refreshToken");
@@ -64,10 +69,16 @@ module RelaySync {
             if (acked instanceof Array && refreshToken instanceof String && userId instanceof String) {
                 Store.setAuthCache("", 0, userId, refreshToken);
                 SyncQueue.acknowledgeRelaySync(acked);
-                if (SyncQueue.pendingCount() > 0) { request(); }
+                syncing = false;
+                if (SyncQueue.pendingCount() > 0) {
+                    request();
+                } else {
+                    SyncQueue.notifyChanged();
+                }
                 return;
             }
         }
+        syncing = false;
         Store.setQueueLastError(true);
         Store.setQueueNeedsToken(code == 401);
         Store.setSyncDiagnostic("relay_failed", code);

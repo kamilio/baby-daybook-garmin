@@ -42,4 +42,17 @@ module BabyDaybookMenuTest {
         Storage.clearValues();
         return status.equals("Offline -1001 · 2 queued");
     }
+
+    (:test)
+    function testStatusKeepsAuthenticationErrorCode(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        Store.setAuthCache("", 0, "", "refresh");
+        Storage.setValue("provisionedBabyUid", "baby");
+        Store.setSyncQueue([{ "id" => "a" }]);
+        Store.setSyncDiagnostic("auth_required", 401);
+        var menu = new BabyDaybookNativeMenu();
+        var status = menu.statusText();
+        Storage.clearValues();
+        return status.equals("Auth error 401 · 1 queued");
+    }
 }

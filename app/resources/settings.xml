@@ -16,19 +16,15 @@
         <settingConfig type="numeric" min="5" />
     </setting>
 
-    <setting propertyKey="@Properties.defaultBottleMl" title="@Strings.DefaultBottleMlTitle">
+    <setting propertyKey="@Properties.defaultBottleOz" title="@Strings.DefaultBottleOzTitle">
         <settingConfig type="numeric" min="0" />
     </setting>
 
-    <setting propertyKey="@Properties.bottleStepMl" title="@Strings.BottleStepMlTitle">
-        <settingConfig type="numeric" min="1" />
-    </setting>
-
-    <setting propertyKey="@Properties.bottleMinMl" title="@Strings.BottleMinMlTitle">
+    <setting propertyKey="@Properties.bottleMinOz" title="@Strings.BottleMinOzTitle">
         <settingConfig type="numeric" min="0" />
     </setting>
 
-    <setting propertyKey="@Properties.bottleMaxMl" title="@Strings.BottleMaxMlTitle">
+    <setting propertyKey="@Properties.bottleMaxOz" title="@Strings.BottleMaxOzTitle">
         <settingConfig type="numeric" min="0" />
     </setting>
 

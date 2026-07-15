@@ -48,7 +48,7 @@ has to be correct in `properties.xml` at build time.
 That said, the baked-in value only has to be valid at *first launch*.
 Firebase rotates the refresh token every time it's used, and the watch
 persists each new rotated token to `Application.Storage` (see
-`source/Config.mc` / `source/TokenClient.mc`) — from then on the watch reads
+`source/Config.mc` / `source/RelaySync.mc`) — from then on the watch reads
 its own stored, freshly-rotated token instead of the one shipped in the
 `.prg`. So you provision once, not on every rebuild.
 

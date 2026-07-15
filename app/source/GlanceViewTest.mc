@@ -44,4 +44,13 @@ module GlanceViewTest {
             && line.find("D —") != null;
     }
 
+    (:test)
+    function testPendingCountUsesLightweightCachedValue(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        Store.setSyncQueue([{ "id" => "a" }, { "id" => "b" }]);
+        var count = Store.getPendingCount();
+        Storage.clearValues();
+        return count == 2;
+    }
+
 }

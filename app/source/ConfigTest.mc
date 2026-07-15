@@ -76,11 +76,10 @@ module ConfigTest {
     }
 
     (:test)
-    function testBottleGettersReturnNumbersNotNull(logger as Test.Logger) as Boolean {
-        return (Config.getDefaultBottleMl() instanceof Number)
-            && (Config.getBottleStepMl() instanceof Number)
-            && (Config.getBottleMinMl() instanceof Number)
-            && (Config.getBottleMaxMl() instanceof Number);
+    function testBottleGettersReturnOunceNumbersNotNull(logger as Test.Logger) as Boolean {
+        return (Config.getDefaultBottleOz() instanceof Number)
+            && (Config.getBottleMinOz() instanceof Number)
+            && (Config.getBottleMaxOz() instanceof Number);
     }
 
     (:test)

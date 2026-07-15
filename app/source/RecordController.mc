@@ -27,12 +27,12 @@ module RecordController {
         return asInitialView(diaperEvent(kind), kind, labelForDiaper(kind));
     }
 
-    function recordBottle(volume as Number?, exitOnDismiss as Boolean) as Void {
+    function recordBottle(ounces as Numeric?, exitOnDismiss as Boolean) as Void {
         var event = { "type" => "bottle" };
-        if (volume != null) {
-            event.put("volume", volume);
+        if (ounces != null) {
+            event.put("volume", BottleUnits.ouncesToMilliliters(ounces));
         }
-        pushSuccessView(event, Store.ACTION_BOTTLE, labelForBottle(volume), exitOnDismiss);
+        pushSuccessView(event, Store.ACTION_BOTTLE, labelForBottle(ounces), exitOnDismiss);
     }
 
     function diaperEvent(kind as String) as Dictionary {
@@ -60,6 +60,11 @@ module RecordController {
         event.put("startMillis", nowMillis);
         var itemId = SyncQueue.enqueue(event);
 
+        // All foreground uploads use the same Fly relay as background
+        // wakes and manual retries. Recording remains offline-first: the
+        // event is durable in Storage before this asynchronous request.
+        RelaySync.request();
+
         Store.setLastEventMillis(action, nowMillis);
         Store.setLastAction(action);
         ComplicationsPublisher.updateAll();
@@ -71,11 +76,11 @@ module RecordController {
         return kind.equals(Store.ACTION_DIRTY) ? "Dirty diaper" : "Wet diaper";
     }
 
-    function labelForBottle(volume as Number?) as String {
-        if (volume == null) {
+    function labelForBottle(ounces as Numeric?) as String {
+        if (ounces == null) {
             return "Bottle";
         }
-        return "Bottle " + volume.toString() + " ml";
+        return "Bottle " + BottleUnits.formatOunces(ounces) + " oz";
     }
 
 }

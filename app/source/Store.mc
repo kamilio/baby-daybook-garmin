@@ -20,7 +20,8 @@ module Store {
     const KEY_SYNC_QUEUE = "syncQueue";
     const KEY_QUEUE_STATUS = "queueStatus";
     const KEY_LAST_EVENT_MILLIS = "lastEventMillis";
-    const KEY_LAST_BOTTLE_ML = "lastBottleMl";
+    const KEY_LAST_BOTTLE_OZ = "lastBottleOz";
+    const KEY_PENDING_COUNT = "pendingCount";
     const KEY_LAST_ACTION = "lastAction";
     const KEY_REGISTERED_SYNC_INTERVAL_MINUTES = "registeredSyncIntervalMinutes";
     const KEY_LAST_SYNC_MILLIS = "lastSyncMillis";
@@ -86,10 +87,8 @@ module Store {
     // --- syncQueue: array of pending event dictionaries ---
 
     // Also (:glance)-tagged: GlanceView reads queue.size() directly, rather
-    // than through SyncQueue.pendingCount(), to keep the glance's dependency
-    // graph limited to this module (SyncQueue.mc pulls in TokenClient/
-    // FirestoreClient, the network stack the glance's memory budget can't
-    // afford).
+    // than through SyncQueue.pendingCount(), keeping the glance dependency
+    // graph limited to this tiny storage module.
     (:background, :glance)
     function getSyncQueue() as Array {
         var raw = Storage.getValue(KEY_SYNC_QUEUE);
@@ -99,6 +98,16 @@ module Store {
     (:background)
     function setSyncQueue(queue as Array) as Void {
         Storage.setValue(KEY_SYNC_QUEUE, queue);
+        Storage.setValue(KEY_PENDING_COUNT, queue.size());
+    }
+
+    // Lightweight glance accessor. Avoids deserializing every queued event
+    // merely to draw a one-number badge.
+    (:background, :glance)
+    function getPendingCount() as Number {
+        var value = Storage.getValue(KEY_PENDING_COUNT);
+        if (value instanceof Number) { return value; }
+        return getSyncQueue().size();
     }
 
     // --- queueStatus: { needsToken, lastError } -- set by SyncQueue, read by
@@ -212,17 +221,17 @@ module Store {
         Storage.setValue(KEY_LAST_EVENT_MILLIS, updated);
     }
 
-    // --- lastBottleMl: number or null ---
+    // --- lastBottleOz: numeric or null ---
 
     (:background)
-    function getLastBottleMl() as Number? {
-        var value = Storage.getValue(KEY_LAST_BOTTLE_ML);
-        return (value instanceof Number) ? value : null;
+    function getLastBottleOz() as Numeric? {
+        var value = Storage.getValue(KEY_LAST_BOTTLE_OZ);
+        return (value instanceof Number || value instanceof Double || value instanceof Float) ? value : null;
     }
 
     (:background)
-    function setLastBottleMl(ml as Number?) as Void {
-        Storage.setValue(KEY_LAST_BOTTLE_ML, ml);
+    function setLastBottleOz(ounces as Numeric?) as Void {
+        Storage.setValue(KEY_LAST_BOTTLE_OZ, ounces);
     }
 
     // --- lastAction: home screen highlight for button navigation ---

@@ -16,7 +16,8 @@ module RecordControllerTest {
 
     (:test)
     function testLabelForBottleWithAndWithoutVolume(logger as Test.Logger) as Boolean {
-        return RecordController.labelForBottle(120).equals("Bottle 120 ml")
+        return RecordController.labelForBottle(4).equals("Bottle 4 oz")
+            && RecordController.labelForBottle(4.5d).equals("Bottle 4.5 oz")
             && RecordController.labelForBottle(null).equals("Bottle");
     }
 

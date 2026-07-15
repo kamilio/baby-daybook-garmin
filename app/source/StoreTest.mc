@@ -144,27 +144,27 @@ module StoreTest {
     }
 
     (:test)
-    function testLastBottleMlDefaultsToNull(logger as Test.Logger) as Boolean {
+    function testLastBottleOzDefaultsToNull(logger as Test.Logger) as Boolean {
         Storage.clearValues();
-        return Store.getLastBottleMl() == null;
+        return Store.getLastBottleOz() == null;
     }
 
     (:test)
-    function testLastBottleMlIgnoresNonNumberShape(logger as Test.Logger) as Boolean {
+    function testLastBottleOzIgnoresNonNumberShape(logger as Test.Logger) as Boolean {
         Storage.clearValues();
-        Storage.setValue("lastBottleMl", "120");
-        var value = Store.getLastBottleMl();
+        Storage.setValue("lastBottleOz", "4");
+        var value = Store.getLastBottleOz();
         Storage.clearValues();
         return value == null;
     }
 
     (:test)
-    function testLastBottleMlRoundTrips(logger as Test.Logger) as Boolean {
+    function testLastBottleOzRoundTrips(logger as Test.Logger) as Boolean {
         Storage.clearValues();
-        Store.setLastBottleMl(150);
-        var value = Store.getLastBottleMl();
+        Store.setLastBottleOz(4.5d);
+        var value = Store.getLastBottleOz();
         Storage.clearValues();
-        return value == 150;
+        return value == 4.5d;
     }
 
     (:test)
