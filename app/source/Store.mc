@@ -221,6 +221,19 @@ module Store {
         Storage.setValue(KEY_LAST_EVENT_MILLIS, updated);
     }
 
+    // Replace the complete server-owned snapshot in one write. Null is an
+    // explicit tombstone meaning no non-deleted event exists for that
+    // action. A single write prevents the glance from observing a mixture
+    // of old and new categories while sync callbacks run.
+    (:background)
+    function replaceAllLastEventMillis(bottle as Numeric?, wet as Numeric?, dirty as Numeric?) as Void {
+        Storage.setValue(KEY_LAST_EVENT_MILLIS, {
+            ACTION_BOTTLE => bottle,
+            ACTION_WET => wet,
+            ACTION_DIRTY => dirty
+        });
+    }
+
     // --- lastBottleOz: numeric or null ---
 
     (:background)

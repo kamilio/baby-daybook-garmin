@@ -11,7 +11,7 @@ class BottleAmountFactory extends WatchUi.PickerFactory {
         PickerFactory.initialize();
         minimum = Config.getBottleMinOz();
         maximum = Config.getBottleMaxOz();
-        step = 1;
+        step = 0.5d;
     }
 
     function getDrawable(index as Number, selected as Boolean) as WatchUi.Drawable? {
@@ -20,7 +20,8 @@ class BottleAmountFactory extends WatchUi.PickerFactory {
             :color => Graphics.COLOR_WHITE,
             :font => Graphics.FONT_NUMBER_MEDIUM,
             :locX => WatchUi.LAYOUT_HALIGN_CENTER,
-            :locY => WatchUi.LAYOUT_VALIGN_CENTER
+            :locY => WatchUi.LAYOUT_VALIGN_CENTER,
+            :justification => Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         });
     }
 

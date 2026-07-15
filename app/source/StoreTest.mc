@@ -144,6 +144,18 @@ module StoreTest {
     }
 
     (:test)
+    function testReplaceAllLastEventMillisStoresNullTombstonesAtomically(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        Store.replaceAllLastEventMillis(null, 2000l, null);
+        var latest = Store.getAllLastEventMillis();
+        var ok = latest.get(Store.ACTION_BOTTLE) == null
+            && latest.get(Store.ACTION_WET) == 2000l
+            && latest.get(Store.ACTION_DIRTY) == null;
+        Storage.clearValues();
+        return ok;
+    }
+
+    (:test)
     function testLastBottleOzDefaultsToNull(logger as Test.Logger) as Boolean {
         Storage.clearValues();
         return Store.getLastBottleOz() == null;

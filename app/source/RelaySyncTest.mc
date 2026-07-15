@@ -18,9 +18,37 @@ module RelaySyncTest {
     (:test)
     function testAppliesLatestUpstreamEvents(logger as Test.Logger) as Boolean {
         Storage.clearValues();
-        RelaySync.applyLatest({ "bottle" => 3000l, "wet" => 2000l, "dirty" => 1000l });
+        var applied = RelaySync.applyLatest({ "bottle" => 3000l, "wet" => 2000l, "dirty" => 1000l });
         var latest = Store.getAllLastEventMillis();
-        var ok = latest.get(Store.ACTION_BOTTLE) == 3000l
+        var ok = applied && latest.get(Store.ACTION_BOTTLE) == 3000l
+            && latest.get(Store.ACTION_WET) == 2000l
+            && latest.get(Store.ACTION_DIRTY) == 1000l;
+        Storage.clearValues();
+        return ok;
+    }
+
+    (:test)
+    function testNullSnapshotClearsDeletedUpstreamEvents(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        Store.replaceAllLastEventMillis(3000l, 2000l, 1000l);
+        var applied = RelaySync.applyLatest({ "bottle" => null, "wet" => null, "dirty" => null });
+        var latest = Store.getAllLastEventMillis();
+        var ok = applied && latest.get(Store.ACTION_BOTTLE) == null
+            && latest.get(Store.ACTION_WET) == null
+            && latest.get(Store.ACTION_DIRTY) == null;
+        Storage.clearValues();
+        return ok;
+    }
+
+    (:test)
+    function testPartialOrMalformedSnapshotPreservesLocalState(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        Store.replaceAllLastEventMillis(3000l, 2000l, 1000l);
+        var partial = RelaySync.applyLatest({ "bottle" => null, "wet" => null });
+        var malformed = RelaySync.applyLatest({ "bottle" => null, "wet" => "bad", "dirty" => null });
+        var latest = Store.getAllLastEventMillis();
+        var ok = !partial && !malformed
+            && latest.get(Store.ACTION_BOTTLE) == 3000l
             && latest.get(Store.ACTION_WET) == 2000l
             && latest.get(Store.ACTION_DIRTY) == 1000l;
         Storage.clearValues();

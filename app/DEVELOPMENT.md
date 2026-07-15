@@ -68,7 +68,7 @@ Properties:
 | `babyUid`              | string | `""`    | Baby UID from `baby-daybook babies list`. |
 | `syncIntervalMinutes` | number | `15`    | Background sync interval; runtime floor is 5 (`Config.SYNC_INTERVAL_MINUTES_FLOOR`), the Connect IQ temporal-event minimum. |
 | `defaultBottleOz`     | number | `4`     | Prefill amount when no bottle has been recorded yet. |
-| `bottleMinOz`         | number | `1`     | Lower picker bound; the native picker advances by 1 oz. |
+| `bottleMinOz`         | number | `1`     | Lower picker bound; the native picker advances by 0.5 oz. |
 | `bottleMaxOz`         | number | `10`    | Upper picker bound. |
 
 ### Setting real values before building

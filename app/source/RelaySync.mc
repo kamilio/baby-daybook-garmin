@@ -67,8 +67,9 @@ module RelaySync {
             var userId = data.get("userId");
             if (acked instanceof Array && refreshToken instanceof String && userId instanceof String) {
                 Store.setAuthCache("", 0, userId, refreshToken);
-                applyLatest(data.get("latest"));
-                ComplicationsPublisher.updateAll();
+                if (applyLatest(data.get("latest"))) {
+                    ComplicationsPublisher.updateAll();
+                }
                 SyncQueue.acknowledgeRelaySync(acked);
                 syncing = false;
                 if (SyncQueue.pendingCount() > 0) {
@@ -87,18 +88,27 @@ module RelaySync {
     }
 
     (:background)
-    function applyLatest(value as Object?) as Void {
-        if (!(value instanceof Dictionary)) { return; }
-        applyLatestOne(value, "bottle", Store.ACTION_BOTTLE);
-        applyLatestOne(value, "wet", Store.ACTION_WET);
-        applyLatestOne(value, "dirty", Store.ACTION_DIRTY);
+    function applyLatest(value as Object?) as Boolean {
+        if (!(value instanceof Dictionary) ||
+            !value.hasKey("bottle") || !value.hasKey("wet") || !value.hasKey("dirty")) {
+            return false;
+        }
+        var bottle = value.get("bottle");
+        var wet = value.get("wet");
+        var dirty = value.get("dirty");
+        if (!isLatestValue(bottle) || !isLatestValue(wet) || !isLatestValue(dirty)) {
+            return false;
+        }
+        Store.replaceAllLastEventMillis(
+            bottle as Numeric?,
+            wet as Numeric?,
+            dirty as Numeric?
+        );
+        return true;
     }
 
     (:background)
-    function applyLatestOne(latest as Dictionary, key as String, action as String) as Void {
-        var value = latest.get(key);
-        if (value instanceof Number || value instanceof Long) {
-            Store.setLastEventMillis(action, value);
-        }
+    function isLatestValue(value as Object?) as Boolean {
+        return value == null || value instanceof Number || value instanceof Long;
     }
 }
