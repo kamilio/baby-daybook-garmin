@@ -164,19 +164,12 @@ knobs, and — in a pinch — the refresh token/baby UID themselves if you need
 to re-provision without rebuilding); it can't add new properties or change
 code.
 
-## 6. Optional: hotkey and complications
+## 6. Optional: hotkey
 
 **Hotkey:** you can assign Baby Daybook to one of the watch's physical
 button shortcuts from the on-watch **Connect IQ Store → Installed → Baby
 Daybook** menu, or via Garmin Connect Mobile's device settings, the same way
 you'd assign any other CIQ app to a button.
 
-**Complications:** Baby Daybook publishes three tap-to-track complications
-(last bottle / wet / dirty). These only work if you also install a **CIQ
-watch face that supports third-party complications** — Garmin's stock/
-pre-installed watch faces cannot display or route taps to another app's CIQ
-complications; that's a platform limitation, not a bug in this app. Install
-a store watch face described as supporting "configurable" or "CIQ"
-complication slots, then assign one of its complication slots to Baby
-Daybook's Bottle/Wet/Dirty complication from the watch face's own
-configuration screen.
+Baby Daybook does not publish complications or broadcast watch-face data, so
+it works with Garmin's stock watch faces without requesting that permission.

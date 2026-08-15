@@ -2,17 +2,11 @@
     <string id="AppName">Baby Daybook</string>
     <string id="PlaceholderText">Baby Daybook</string>
 
-    <string id="BottleComplicationLongLabel">Last bottle</string>
-    <string id="WetComplicationLongLabel">Last wet diaper</string>
-    <string id="DirtyComplicationLongLabel">Last dirty diaper</string>
-    <string id="ComplicationPendingShortLabel">—</string>
-
     <string id="RefreshTokenTitle">Firebase refresh token</string>
     <string id="BabyUidTitle">Baby UID</string>
     <string id="SetupCallbackTitle">Setup code (recommended): paste the complete code from kamilio.github.io/baby-daybook-garmin</string>
     <string id="ManualRefreshTokenTitle">Advanced setup: refresh token (use with Baby UID)</string>
     <string id="ManualBabyUidTitle">Advanced setup: Baby UID (use with refresh token)</string>
-    <string id="SyncIntervalMinutesTitle">Sync interval (minutes)</string>
     <string id="DefaultBottleOzTitle">Default bottle amount (oz)</string>
     <string id="BottleMinOzTitle">Bottle minimum (oz)</string>
     <string id="BottleMaxOzTitle">Bottle maximum (oz)</string>

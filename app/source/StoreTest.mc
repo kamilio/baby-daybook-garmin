@@ -204,18 +204,40 @@ module StoreTest {
     }
 
     (:test)
-    function testRegisteredSyncIntervalMinutesDefaultsToNegativeOne(logger as Test.Logger) as Boolean {
+    function testMilkChoiceAndFetchedGroupsRoundTrip(logger as Test.Logger) as Boolean {
         Storage.clearValues();
-        return Store.getRegisteredSyncIntervalMinutes() == -1;
+        Store.setBottleGroups([{ "uid" => "formula-group", "title" => "Formula", "messageKey" => "formula" }]);
+        Store.setLastMilkType("formula-group");
+        var groups = Store.getBottleGroups();
+        var ok = Store.getLastMilkType().equals("formula-group") && groups.size() == 1
+            && groups[0].get("title").equals("Formula");
+        Storage.clearValues();
+        return ok;
     }
 
     (:test)
-    function testRegisteredSyncIntervalMinutesRoundTrips(logger as Test.Logger) as Boolean {
+    function testWatchEventLogKeepsNewestTenAndUpdatesStatus(logger as Test.Logger) as Boolean {
         Storage.clearValues();
-        Store.setRegisteredSyncIntervalMinutes(15);
-        var value = Store.getRegisteredSyncIntervalMinutes();
+        for (var i = 0; i < 11; i++) {
+            Store.appendWatchEvent({ "id" => i.toString(), "status" => "pending" });
+        }
+        Store.setWatchEventStatus("10", "synced");
+        var events = Store.getWatchEventLog();
+        var ok = events.size() == 10 && events[0].get("id").equals("1")
+            && events[9].get("id").equals("10") && events[9].get("status").equals("synced");
         Storage.clearValues();
-        return value == 15;
+        return ok;
+    }
+
+    (:test)
+    function testActiveSleepRoundTripsAndClears(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        Store.setActiveSleep({ "activityId" => "sleep-1", "startMillis" => 1000l });
+        var active = Store.getActiveSleep();
+        Store.setActiveSleep(null);
+        var ok = active.get("activityId").equals("sleep-1") && Store.getActiveSleep() == null;
+        Storage.clearValues();
+        return ok;
     }
 
 }

@@ -19,6 +19,10 @@ Sample size: 1036 `bottle` and 400 `diaper_change` records for one baby
 profile. Field presence was 100% consistent within each type across the
 whole sample (no optional-field variance observed for quick-add entries).
 
+This corpus establishes the native Firestore primitive types. Production
+Garmin writes use the SDK's shared revision-4 activity builder, which emits
+the complete canonical record shape while preserving these wire types.
+
 ## (a) `volume` wire type on `bottle`
 
 Always `doubleValue`, even when the value is a whole number.
@@ -27,18 +31,16 @@ Confirmed with two samples:
 - `volume: 147.86764782055937` → `{"doubleValue": 147.86764782055937}`
 - `volume: 30` → `{"doubleValue": 30}` (not `integerValue`)
 
-This matters because `baby-daybook-sdk`'s own `encodeValue()` picks the
-wire type based on `Number.isInteger(value)`:
+The SDK's generic `encodeValue()` picks a numeric wire type from
+`Number.isInteger(value)`:
 
 ```ts
 return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
 ```
 
-So writing a bottle with a round-number volume (e.g. `30`) through the SDK's
-`encodeFields`/`set()` would produce `integerValue: "30"` — **not**
-byte-compatible with what the phone app writes. The Garmin app must force
-`volume` to encode as `doubleValue` unconditionally, regardless of whether
-the number happens to be an integer.
+Native daily-action writes therefore mark `volume` as a double field at the
+repository boundary. The SDK, MCP commands, and Garmin relay all encode a
+round-number volume such as `30` as `doubleValue: 30`.
 
 ## (b) Full field set for a quick-add `diaper_change`
 
@@ -159,35 +161,28 @@ earlier than the transaction's final commit timestamp reflected in
 client can't predict the server's commit time ahead of sending the
 request.
 
-This matches `baby-daybook-sdk/src/firestore.ts`'s own write path exactly:
+This matches every SDK daily-action write path:
 
 ```ts
 updateTransforms: [{ fieldPath: "svt", setToServerValue: "REQUEST_TIME" }],
 ```
 
-The Garmin app should use the identical `updateTransforms` /
+The Garmin relay uses the identical `updateTransforms` /
 `setToServerValue: "REQUEST_TIME"` mechanism for `svt` rather than sending
-a client-computed timestamp field, both to match the phone app's behavior
-and because `svt` is excluded from the plain `fields` payload on write (see
-`delete fields.svt` in `FirestoreClient.set`/`setMany`).
+a client-computed timestamp field. `svt` is excluded from the plain fields
+payload in `FirestoreClient.set`, `setMany`, and `createManyIfAbsent`.
 
 ## Other compatibility notes
 
-- `rev` is a plain client-written `integerValue`, constant at `3` across
-  every record type sampled (2889 total activities across 10 activity
-  types on this baby profile) — almost certainly a schema/record-format
-  version the app stamps on every write, not a per-record edit counter.
-  The Garmin app should write `rev: 3` on new records for compatibility
-  with the current app version.
+- `rev` is a plain client-written `integerValue`, not a per-record edit
+  counter. The sampled corpus contains revision 3; current writes use the
+  SDK's canonical revision-4 builder.
 - Boolean-shaped fields (`pee`, `poo`, and — from the `Baby` doc —
   `convertUnits`, `isPremature`) are written as `integerValue` `0`/`1`,
   **not** Firestore's native `booleanValue`, even though
   `baby-daybook-sdk/src/types.ts` types some of these fields as
-  TypeScript `boolean`. `FirestoreClient.decodeValue` decodes
-  `integerValue` to a JS `number`, so the SDK's decoded JSON also shows
-  `0`/`1` rather than `true`/`false` — this is a pre-existing type/wire
-  mismatch in the SDK's type declarations, not a decoding bug worth
-  fixing there, but the Garmin app must write these fields as integers
-  to stay byte-compatible.
+  TypeScript `boolean`. The SDK normalizes native `0`/`1` values to booleans
+  at its public boundary and encodes them back to integer flags on writes.
+  The Garmin relay uses that same codec.
 - `notes` and `groupUid` are always present as `stringValue`, using `""`
   for "no value" rather than omitting the field or using `nullValue`.

@@ -11,9 +11,8 @@ import Toybox.WatchUi;
 // time, and a "Synced"/"Queued" status line that tracks whether this
 // specific queue item (by id) is still sitting in SyncQueue. No undo
 // affordance -- mistakes are deleted in the phone app, not here. Dismisses
-// itself after ~2s: pops back to whatever pushed it, or exits the app
-// entirely when exitOnDismiss is set (the complication-launch flow, which
-// never has a home view to pop back to).
+// itself after ~2s: pops back to whatever pushed it, or exits when a caller
+// explicitly requests that behavior.
 class SuccessView extends WatchUi.View {
 
     const DISMISS_DELAY_MS = 2000;

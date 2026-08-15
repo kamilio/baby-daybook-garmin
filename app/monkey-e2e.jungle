@@ -1,0 +1,3 @@
+project.manifest = manifest-e2e.xml
+base.sourcePath = source;source-e2e
+base.resourcePath = resources

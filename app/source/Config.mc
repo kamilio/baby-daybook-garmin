@@ -6,15 +6,9 @@ import Toybox.Lang;
 // runtime Application.Storage override for values Firebase rotates after
 // first launch (currently just the refresh token, cached under "authCache"
 // by RelaySync — Storage wins whenever a rotated value is present). No UI
-// imports: this module must stay safe to pull into the (:background)
-// build, where the background sync service reads the refresh token,
-// baby uid, and sync interval directly.
-(:background)
+// imports: this module stays lightweight for network and glance callers.
 module Config {
 
-    const SYNC_INTERVAL_MINUTES_FLOOR = 5;
-
-    (:background)
     function getRefreshToken() as String {
         var authCache = Storage.getValue("authCache");
         if (authCache instanceof Dictionary) {
@@ -27,7 +21,6 @@ module Config {
         return (baked instanceof String) ? baked : "";
     }
 
-    (:background)
     function getBabyUid() as String {
         var provisioned = Storage.getValue("provisionedBabyUid");
         if (provisioned instanceof String && provisioned.length() > 0) {
@@ -37,36 +30,16 @@ module Config {
         return (value instanceof String) ? value : "";
     }
 
-    // Clamped to the Connect IQ temporal-event floor; smaller values would
-    // throw InvalidBackgroundTimeException when registering the background
-    // event.
-    (:background)
-    function getSyncIntervalMinutes() as Number {
-        var value = Properties.getValue("syncIntervalMinutes");
-        var minutes = (value instanceof Number) ? value : 15;
-        return clampSyncIntervalMinutes(minutes);
-    }
-
-    // Split out from getSyncIntervalMinutes() so the floor clamp is
-    // directly testable without baking an invalid properties.xml default.
-    (:background)
-    function clampSyncIntervalMinutes(minutes as Number) as Number {
-        return (minutes < SYNC_INTERVAL_MINUTES_FLOOR) ? SYNC_INTERVAL_MINUTES_FLOOR : minutes;
-    }
-
-    (:background)
     function getDefaultBottleOz() as Numeric {
         var value = Properties.getValue("defaultBottleOz");
         return (value instanceof Number) ? value : 4;
     }
 
-    (:background)
     function getBottleMinOz() as Numeric {
         var value = Properties.getValue("bottleMinOz");
         return (value instanceof Number) ? value : 1;
     }
 
-    (:background)
     function getBottleMaxOz() as Numeric {
         var value = Properties.getValue("bottleMaxOz");
         return (value instanceof Number) ? value : 10;

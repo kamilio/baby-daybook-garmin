@@ -2,18 +2,15 @@ import Toybox.Application.Storage;
 import Toybox.Lang;
 
 // Typed access to the app's persistent state (Toybox.Application.Storage).
-// Storage is shared foreground/background on CIQ >= 3.2 -- the background
-// sync service reads and writes these same keys -- so no accessor here
-// caches a value in a module variable; every read goes straight to Storage
+// No accessor caches a value in a module variable; every read goes straight to Storage
 // so the queue accessor (and everything else) always sees the latest
 // last-writer-wins state. Every read also guards against null/malformed
 // shapes, since Storage survives app updates and the on-disk shape may
-// drift between builds. No UI imports: this module must stay safe to pull
-// into the (:background) build. A few read-only accessors are also tagged
+// drift between builds. No UI imports. Read-only glance accessors are tagged
 // (:glance) -- see each one -- so GlanceView.mc can read them without
 // pulling any other module (network stack included) into the tiny glance
 // memory budget.
-(:background, :glance)
+(:glance)
 module Store {
 
     const KEY_AUTH_CACHE = "authCache";
@@ -21,27 +18,51 @@ module Store {
     const KEY_QUEUE_STATUS = "queueStatus";
     const KEY_LAST_EVENT_MILLIS = "lastEventMillis";
     const KEY_LAST_BOTTLE_OZ = "lastBottleOz";
+    const KEY_LAST_MILK_TYPE = "lastMilkType";
+    const KEY_BOTTLE_GROUPS = "bottleGroups";
+    const KEY_WATCH_EVENT_LOG = "watchEventLog";
+    const KEY_ACTIVE_SLEEP = "activeSleep";
     const KEY_PENDING_COUNT = "pendingCount";
     const KEY_LAST_ACTION = "lastAction";
-    const KEY_REGISTERED_SYNC_INTERVAL_MINUTES = "registeredSyncIntervalMinutes";
     const KEY_LAST_SYNC_MILLIS = "lastSyncMillis";
     const KEY_SYNC_DIAGNOSTIC = "syncDiagnostic";
+    const KEY_BABY_PROFILE = "babyProfile";
 
     const ACTION_BOTTLE = "bottle";
     const ACTION_WET = "wet";
     const ACTION_DIRTY = "dirty";
+    const ACTION_WET_DIRTY = "wet_dirty";
+    const ACTION_SLEEP = "sleep";
+
+    const MILK_MOTHERS = "mothers_milk";
+    const MILK_FORMULA = "formula";
+    const MAX_WATCH_EVENT_LOG = 10;
+
+    // --- babyProfile: server-owned identity used by the glance ---
+
+    (:glance)
+    function getBabyProfile() as Dictionary {
+        var value = Storage.getValue(KEY_BABY_PROFILE);
+        return (value instanceof Dictionary) ? value : {};
+    }
+
+    function setBabyProfile(name as String, birthdayMillis as Numeric?) as Void {
+        Storage.setValue(KEY_BABY_PROFILE, {
+            "name" => name,
+            "birthdayMillis" => birthdayMillis
+        });
+    }
 
     // epoch-millisecond fields (authCache.expiresAtMillis, lastEventMillis
     // entries) exceed the 32-bit Number range, so Storage may hand back
     // either a Number or a Long depending on how the value was written.
-    (:background, :glance)
+    (:glance)
     function isEpochMillis(value as Object) as Boolean {
         return (value instanceof Number) || (value instanceof Long);
     }
 
     // --- authCache: { idToken, expiresAtMillis, userId, refreshToken } ---
 
-    (:background)
     function getAuthCache() as Dictionary {
         var raw = Storage.getValue(KEY_AUTH_CACHE);
         var idToken = "";
@@ -74,7 +95,6 @@ module Store {
         };
     }
 
-    (:background)
     function setAuthCache(idToken as String, expiresAtMillis as Numeric, userId as String, refreshToken as String) as Void {
         Storage.setValue(KEY_AUTH_CACHE, {
             "idToken" => idToken,
@@ -89,13 +109,12 @@ module Store {
     // Also (:glance)-tagged: GlanceView reads queue.size() directly, rather
     // than through SyncQueue.pendingCount(), keeping the glance dependency
     // graph limited to this tiny storage module.
-    (:background, :glance)
+    (:glance)
     function getSyncQueue() as Array {
         var raw = Storage.getValue(KEY_SYNC_QUEUE);
         return (raw instanceof Array) ? raw : [];
     }
 
-    (:background)
     function setSyncQueue(queue as Array) as Void {
         Storage.setValue(KEY_SYNC_QUEUE, queue);
         Storage.setValue(KEY_PENDING_COUNT, queue.size());
@@ -103,7 +122,7 @@ module Store {
 
     // Lightweight glance accessor. Avoids deserializing every queued event
     // merely to draw a one-number badge.
-    (:background, :glance)
+    (:glance)
     function getPendingCount() as Number {
         var value = Storage.getValue(KEY_PENDING_COUNT);
         if (value instanceof Number) { return value; }
@@ -116,42 +135,35 @@ module Store {
     // permanent rejection, and the foreground UI needs to see that after the
     // process that set it has already exited. ---
 
-    (:background)
     function getQueueNeedsToken() as Boolean {
         var value = getQueueStatusField("needsToken");
         return (value instanceof Boolean) ? value : false;
     }
 
-    (:background)
     function setQueueNeedsToken(value as Boolean) as Void {
         setQueueStatusField("needsToken", value);
     }
 
-    (:background)
     function getQueueLastError() as Boolean {
         var value = getQueueStatusField("lastError");
         return (value instanceof Boolean) ? value : false;
     }
 
-    (:background)
     function setQueueLastError(value as Boolean) as Void {
         setQueueStatusField("lastError", value);
     }
 
-    (:background)
     function getLastSyncMillis() as Numeric? {
         var value = Storage.getValue(KEY_LAST_SYNC_MILLIS);
         return isEpochMillis(value) ? value as Numeric : null;
     }
 
-    (:background)
     function setLastSyncMillis(value as Numeric) as Void {
         Storage.setValue(KEY_LAST_SYNC_MILLIS, value);
     }
 
     // Safe operational telemetry only. Never store URLs, tokens, payloads,
     // baby IDs, or user IDs here.
-    (:background)
     function setSyncDiagnostic(stage as String, code as Number) as Void {
         Storage.setValue(KEY_SYNC_DIAGNOSTIC, {
             "stage" => stage,
@@ -160,7 +172,6 @@ module Store {
         });
     }
 
-    (:background)
     function getSyncDiagnostic() as Dictionary {
         var value = Storage.getValue(KEY_SYNC_DIAGNOSTIC);
         return (value instanceof Dictionary) ? value : {
@@ -170,13 +181,11 @@ module Store {
         };
     }
 
-    (:background)
     function getQueueStatusField(field as String) as Object? {
         var raw = Storage.getValue(KEY_QUEUE_STATUS);
         return (raw instanceof Dictionary) ? raw.get(field) : null;
     }
 
-    (:background)
     function setQueueStatusField(field as String, value as Boolean) as Void {
         var raw = Storage.getValue(KEY_QUEUE_STATUS);
         var updated = (raw instanceof Dictionary) ? raw : {};
@@ -186,7 +195,6 @@ module Store {
 
     // --- lastEventMillis: dictionary keyed by "bottle" / "wet" / "dirty" ---
 
-    (:background)
     function getLastEventMillis(action as String) as Numeric? {
         var raw = Storage.getValue(KEY_LAST_EVENT_MILLIS);
         if (raw instanceof Dictionary) {
@@ -199,8 +207,8 @@ module Store {
     }
 
     // Normalized view of all three actions in one Storage read, for
-    // callers (glance, complications) that need every action at once.
-    (:background, :glance)
+    // callers that need every action at once.
+    (:glance)
     function getAllLastEventMillis() as Dictionary {
         var raw = Storage.getValue(KEY_LAST_EVENT_MILLIS);
         var actions = [ACTION_BOTTLE, ACTION_WET, ACTION_DIRTY];
@@ -213,7 +221,6 @@ module Store {
         return result;
     }
 
-    (:background)
     function setLastEventMillis(action as String, millis as Numeric) as Void {
         var raw = Storage.getValue(KEY_LAST_EVENT_MILLIS);
         var updated = (raw instanceof Dictionary) ? raw : {};
@@ -225,58 +232,96 @@ module Store {
     // explicit tombstone meaning no non-deleted event exists for that
     // action. A single write prevents the glance from observing a mixture
     // of old and new categories while sync callbacks run.
-    (:background)
     function replaceAllLastEventMillis(bottle as Numeric?, wet as Numeric?, dirty as Numeric?) as Void {
+        var currentWetDirty = getLastEventMillis(ACTION_WET_DIRTY);
         Storage.setValue(KEY_LAST_EVENT_MILLIS, {
             ACTION_BOTTLE => bottle,
             ACTION_WET => wet,
-            ACTION_DIRTY => dirty
+            ACTION_DIRTY => dirty,
+            ACTION_WET_DIRTY => currentWetDirty
         });
     }
 
     // --- lastBottleOz: numeric or null ---
 
-    (:background)
     function getLastBottleOz() as Numeric? {
         var value = Storage.getValue(KEY_LAST_BOTTLE_OZ);
         return (value instanceof Number || value instanceof Double || value instanceof Float) ? value : null;
     }
 
-    (:background)
     function setLastBottleOz(ounces as Numeric?) as Void {
         Storage.setValue(KEY_LAST_BOTTLE_OZ, ounces);
     }
 
+    function getLastMilkType() as String {
+        var value = Storage.getValue(KEY_LAST_MILK_TYPE);
+        if (value instanceof String && value.length() > 0) { return value; }
+        return MILK_MOTHERS;
+    }
+
+    function setLastMilkType(value as String) as Void {
+        Storage.setValue(KEY_LAST_MILK_TYPE, value);
+    }
+
+    function getBottleGroups() as Array {
+        var value = Storage.getValue(KEY_BOTTLE_GROUPS);
+        if (value instanceof Array && value.size() > 0) { return value; }
+        return [
+            { "uid" => "", "messageKey" => MILK_MOTHERS, "title" => "Mother's milk" },
+            { "uid" => "", "messageKey" => MILK_FORMULA, "title" => "Formula" }
+        ];
+    }
+
+    function setBottleGroups(value as Array) as Void {
+        if (value.size() > 0) { Storage.setValue(KEY_BOTTLE_GROUPS, value); }
+    }
+
+    // Complete append-only history of operations submitted from this watch.
+    // Server snapshots are deliberately never inserted here.
+    function getWatchEventLog() as Array {
+        var value = Storage.getValue(KEY_WATCH_EVENT_LOG);
+        return (value instanceof Array) ? value : [];
+    }
+
+    function appendWatchEvent(event as Dictionary) as Void {
+        var events = getWatchEventLog();
+        events.add(event);
+        if (events.size() > MAX_WATCH_EVENT_LOG) {
+            events = events.slice(events.size() - MAX_WATCH_EVENT_LOG, null);
+        }
+        Storage.setValue(KEY_WATCH_EVENT_LOG, events);
+    }
+
+    function setWatchEventStatus(id as String, status as String) as Void {
+        var events = getWatchEventLog();
+        for (var i = 0; i < events.size(); i++) {
+            var event = events[i];
+            if (event instanceof Dictionary && id.equals(event.get("id"))) {
+                event.put("status", status);
+                break;
+            }
+        }
+        Storage.setValue(KEY_WATCH_EVENT_LOG, events);
+    }
+
+    function getActiveSleep() as Dictionary? {
+        var value = Storage.getValue(KEY_ACTIVE_SLEEP);
+        return (value instanceof Dictionary) ? value : null;
+    }
+
+    function setActiveSleep(value as Dictionary?) as Void {
+        Storage.setValue(KEY_ACTIVE_SLEEP, value);
+    }
+
     // --- lastAction: home screen highlight for button navigation ---
 
-    (:background)
     function getLastAction() as String? {
         var value = Storage.getValue(KEY_LAST_ACTION);
         return (value instanceof String) ? value : null;
     }
 
-    (:background)
     function setLastAction(action as String) as Void {
         Storage.setValue(KEY_LAST_ACTION, action);
-    }
-
-    // --- registeredSyncIntervalMinutes: the interval last passed to
-    // Background.registerForTemporalEvent(), so BabyDaybookApp can tell
-    // "config changed, must re-register" apart from "already registered
-    // for this interval, skip" without re-deriving it from the opaque
-    // Moment Background.getTemporalEventRegisteredTime() returns. -1
-    // default never matches a real interval, so the first app start always
-    // registers. ---
-
-    (:background)
-    function getRegisteredSyncIntervalMinutes() as Number {
-        var value = Storage.getValue(KEY_REGISTERED_SYNC_INTERVAL_MINUTES);
-        return (value instanceof Number) ? value : -1;
-    }
-
-    (:background)
-    function setRegisteredSyncIntervalMinutes(minutes as Number) as Void {
-        Storage.setValue(KEY_REGISTERED_SYNC_INTERVAL_MINUTES, minutes);
     }
 
 }

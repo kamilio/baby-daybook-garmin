@@ -55,4 +55,16 @@ module BabyDaybookMenuTest {
         Storage.clearValues();
         return status.equals("Auth error 401 · 1 queued");
     }
+
+    (:test)
+    function testSleepMenuReflectsLocalTimerState(logger as Test.Logger) as Boolean {
+        Storage.clearValues();
+        var inactive = BabyDaybookMenu.sleepTitle().equals("Start sleep")
+            && BabyDaybookMenu.sleepStatus().equals("Not running");
+        Store.setActiveSleep({ "activityId" => "sleep", "startMillis" => 1l });
+        var active = BabyDaybookMenu.sleepTitle().equals("Stop sleep")
+            && BabyDaybookMenu.sleepStatus().equals("Running");
+        Storage.clearValues();
+        return inactive && active;
+    }
 }

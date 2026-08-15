@@ -1,4 +1,5 @@
 import Toybox.Application.Storage;
+import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
@@ -13,17 +14,24 @@ module BabyDaybookMenu {
         return Config.getRefreshToken().length() > 0 && Config.getBabyUid().length() > 0;
     }
 
-    function lastEventLabel(action as String) as String {
-        var last = Store.getLastEventMillis(action);
-        if (last == null) {
-            return "Not logged yet";
-        }
+    function lastEventLabelAt(last as Numeric) as String {
         var minutes = (((TimeUtil.nowEpochMillis() - last) / 60000).toNumber());
         if (minutes < 1) { return "Just now"; }
         if (minutes < 60) { return minutes.toString() + " min ago"; }
         var hours = minutes / 60;
         if (hours < 24) { return hours.toString() + " hr ago"; }
         return (hours / 24).toString() + " days ago";
+    }
+
+    function sleepTitle() as String { return Store.getActiveSleep() == null ? "Start sleep" : "Stop sleep"; }
+    function sleepStatus() as String { return Store.getActiveSleep() == null ? "Not running" : "Running"; }
+
+    function iconItem(label as String, subLabel as String?, id as Symbol) as WatchUi.MenuItem {
+        return new WatchUi.MenuItem(label, subLabel, id, null);
+    }
+
+    function createSleepItem() as WatchUi.MenuItem {
+        return iconItem(sleepTitle(), sleepStatus(), :sleep);
     }
 }
 
@@ -32,25 +40,28 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
     var bottleItem as WatchUi.MenuItem;
     var wetItem as WatchUi.MenuItem;
     var dirtyItem as WatchUi.MenuItem;
+    var sleepItem as WatchUi.MenuItem;
 
     function initialize() {
         Menu2.initialize({ :title => "Baby Daybook" });
         if (!BabyDaybookMenu.isProvisioned() || SyncQueue.needsToken()) {
-            addItem(new WatchUi.MenuItem(
+            addItem(BabyDaybookMenu.iconItem(
                 "Setup required",
-                "Paste code in Connect IQ settings",
-                :setup,
-                null
+                "Open app settings",
+                :setup
             ));
         }
-        bottleItem = new WatchUi.MenuItem("Bottle", BabyDaybookMenu.lastEventLabel(Store.ACTION_BOTTLE), :bottle, null);
-        wetItem = new WatchUi.MenuItem("Wet diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_WET), :wet, null);
-        dirtyItem = new WatchUi.MenuItem("Dirty diaper", BabyDaybookMenu.lastEventLabel(Store.ACTION_DIRTY), :dirty, null);
+        bottleItem = BabyDaybookMenu.iconItem("Bottle", null, :bottle);
+        wetItem = BabyDaybookMenu.iconItem("Wet diaper", null, :wet);
+        dirtyItem = BabyDaybookMenu.iconItem("Dirty diaper", null, :dirty);
+        sleepItem = BabyDaybookMenu.createSleepItem();
         addItem(bottleItem);
         addItem(wetItem);
         addItem(dirtyItem);
-        syncItem = new WatchUi.MenuItem("Sync", statusText(), :sync, null);
+        addItem(sleepItem);
+        syncItem = BabyDaybookMenu.iconItem("Sync", statusText(), :sync);
         addItem(syncItem);
+        addItem(BabyDaybookMenu.iconItem("Event log", "Watch only · latest 10", :event_log));
     }
 
     function onShow() as Void {
@@ -67,9 +78,8 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
     }
 
     function refreshStatus() as Void {
-        bottleItem.setSubLabel(BabyDaybookMenu.lastEventLabel(Store.ACTION_BOTTLE));
-        wetItem.setSubLabel(BabyDaybookMenu.lastEventLabel(Store.ACTION_WET));
-        dirtyItem.setSubLabel(BabyDaybookMenu.lastEventLabel(Store.ACTION_DIRTY));
+        sleepItem.setLabel(BabyDaybookMenu.sleepTitle());
+        sleepItem.setSubLabel(BabyDaybookMenu.sleepStatus());
         syncItem.setSubLabel(statusText());
         WatchUi.requestUpdate();
     }
@@ -103,14 +113,7 @@ class BabyDaybookNativeMenu extends WatchUi.Menu2 {
             }
             return pending.toString() + " queued · tap to retry";
         }
-        var last = Store.getLastSyncMillis();
-        if (last == null) {
-            return "Ready";
-        }
-        var minutes = ((TimeUtil.nowEpochMillis() - last) / 60000).toNumber();
-        if (minutes < 1) { return "Synced just now"; }
-        if (minutes < 60) { return "Synced " + minutes.toString() + " min ago"; }
-        return "Synced " + (minutes / 60).toString() + " hr ago";
+        return "Ready";
     }
 }
 
@@ -134,16 +137,63 @@ class BabyDaybookMenuDelegate extends WatchUi.Menu2InputDelegate {
             Store.setQueueLastError(false);
             RelaySync.request();
         } else if (id == :bottle) {
-            var picker = new BottleAmountPicker(false);
-            WatchUi.pushView(picker, new BottleAmountPickerDelegate(picker), WatchUi.SLIDE_UP);
+            var milk = new BottleMilkMenu();
+            WatchUi.pushView(milk, new BottleMilkMenuDelegate(false), WatchUi.SLIDE_UP);
         } else if (id == :wet) {
             RecordController.recordDiaper(Store.ACTION_WET);
         } else if (id == :dirty) {
             RecordController.recordDiaper(Store.ACTION_DIRTY);
+        } else if (id == :sleep) {
+            var intendedStart = item.getLabel().equals("Start sleep");
+            RelaySync.setOnComplete(new Lang.Method(self, :onSleepSyncComplete));
+            pendingSleepStart = intendedStart;
+            if (!RelaySync.request() && !RelaySync.isSyncing()) {
+                RelaySync.setOnComplete(null);
+                pendingSleepStart = null;
+            }
+        } else if (id == :event_log) {
+            var log = new WatchEventLogMenu();
+            WatchUi.pushView(log, new WatchEventLogMenuDelegate(), WatchUi.SLIDE_UP);
+        }
+    }
+
+    var pendingSleepStart as Boolean?;
+
+    function onSleepSyncComplete(success as Boolean) as Void {
+        var intendedStart = pendingSleepStart;
+        pendingSleepStart = null;
+        if (!success || intendedStart == null) { return; }
+
+        var isRunning = Store.getActiveSleep() != null;
+        if ((intendedStart as Boolean) && !isRunning) {
+            RecordController.startSleep();
+        } else if (!(intendedStart as Boolean) && isRunning) {
+            RecordController.stopSleep();
+        } else {
+            var prompt = isRunning ? "Sleep is running. Stop it?" : "Sleep is stopped. Start it?";
+            var dialog = new WatchUi.Confirmation(prompt);
+            WatchUi.pushView(dialog, new SleepConflictDelegate(!isRunning), WatchUi.SLIDE_IMMEDIATE);
         }
     }
 
     function onBack() as Void {
         WatchUi.popView(WatchUi.SLIDE_DOWN);
+    }
+}
+
+class SleepConflictDelegate extends WatchUi.ConfirmationDelegate {
+    var startSleep as Boolean;
+
+    function initialize(shouldStart as Boolean) {
+        ConfirmationDelegate.initialize();
+        startSleep = shouldStart;
+    }
+
+    function onResponse(value as WatchUi.Confirm) as Boolean {
+        if (value == WatchUi.CONFIRM_YES) {
+            if (startSleep) { RecordController.startSleep(); }
+            else { RecordController.stopSleep(); }
+        }
+        return true;
     }
 }

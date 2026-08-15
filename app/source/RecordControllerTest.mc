@@ -11,7 +11,8 @@ module RecordControllerTest {
     (:test)
     function testLabelForDiaperMapsWetAndDirty(logger as Test.Logger) as Boolean {
         return RecordController.labelForDiaper(Store.ACTION_WET).equals("Wet diaper")
-            && RecordController.labelForDiaper(Store.ACTION_DIRTY).equals("Dirty diaper");
+            && RecordController.labelForDiaper(Store.ACTION_DIRTY).equals("Dirty diaper")
+            && RecordController.labelForDiaper(Store.ACTION_WET_DIRTY).equals("Wet + dirty diaper");
     }
 
     (:test)

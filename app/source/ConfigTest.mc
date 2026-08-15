@@ -55,27 +55,6 @@ module ConfigTest {
     }
 
     (:test)
-    function testSyncIntervalFloorClampsBelowMinimum(logger as Test.Logger) as Boolean {
-        return Config.clampSyncIntervalMinutes(1) == Config.SYNC_INTERVAL_MINUTES_FLOOR
-            && Config.clampSyncIntervalMinutes(4) == Config.SYNC_INTERVAL_MINUTES_FLOOR
-            && Config.clampSyncIntervalMinutes(0) == Config.SYNC_INTERVAL_MINUTES_FLOOR
-            && Config.clampSyncIntervalMinutes(-100) == Config.SYNC_INTERVAL_MINUTES_FLOOR;
-    }
-
-    (:test)
-    function testSyncIntervalFloorPassesThroughAtOrAboveMinimum(logger as Test.Logger) as Boolean {
-        return Config.clampSyncIntervalMinutes(5) == 5
-            && Config.clampSyncIntervalMinutes(15) == 15;
-    }
-
-    (:test)
-    function testSyncIntervalUsesBakedPropertyWhenAboveFloor(logger as Test.Logger) as Boolean {
-        // properties.xml bakes in 15 by default; confirm the real getter
-        // (Properties-backed, not just the pure clamp helper) reflects it.
-        return Config.getSyncIntervalMinutes() == 15;
-    }
-
-    (:test)
     function testBottleGettersReturnOunceNumbersNotNull(logger as Test.Logger) as Boolean {
         return (Config.getDefaultBottleOz() instanceof Number)
             && (Config.getBottleMinOz() instanceof Number)

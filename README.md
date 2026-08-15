@@ -1,7 +1,33 @@
 # Baby Daybook for Garmin
 
 A private Connect IQ app for recording Baby Daybook bottle and diaper events
-from the Garmin fēnix 7 family.
+from the Garmin fēnix 7 family. It works with Garmin's default watch faces and
+does not publish complication data.
+
+## Screenshots
+
+| Main menu | Bottle type | Glance |
+| --- | --- | --- |
+| ![Baby Daybook main menu](docs/screenshots/main-menu-fenix7.png) | ![Bottle type menu](docs/screenshots/bottle-type-fenix7.png) | ![Baby profile glance](docs/screenshots/glance-fenix7.png) |
+
+## Install
+
+The current build is a private Garmin beta. Install it while signed into the
+Garmin account that owns the beta:
+
+1. Pair and sync the watch with Garmin Connect, then install the **Connect IQ
+   Store** app on the phone if it is not already installed.
+2. Open the private [Baby Daybook beta listing](https://apps-developer.garmin.com/apps/d319a3ff-9e5d-4a1d-bb79-2674276e1ac9)
+   in the same signed-in Garmin account.
+3. Select **Download**, choose the watch, review the Internet communication
+   permission, and select **Allow**.
+4. Open Garmin Connect or Connect IQ and sync the watch. **Baby Daybook** will
+   appear in the watch's Apps list when installation finishes.
+5. Complete the provisioning steps below, save the app settings, and sync once
+   more.
+
+Supported devices are the Enduro 2, fēnix 7/7S/7X families (including Pro
+models), and tactix 7.
 
 ## Provisioning
 
@@ -13,9 +39,12 @@ Daybook → Settings → Setup**, save, and sync the watch.
 
 The page exchanges that one-time Apple credential directly with Baby Daybook's
 Firebase project, loads the signed-in account's baby profiles, and returns the
-selected baby UID plus refresh token into the setup code. The static site has
-no application server and does not persist credentials. The watch UI uses
-Garmin's native `Menu2` and `Picker` controls.
+selected baby UID plus refresh token into the setup code. The Apple credential
+exists only in page memory. For the `?sync=1` browser sync fallback, the page
+stores the selected baby UID and rotating refresh token in local browser
+storage and sends event batches only to the Fly sync relay; nothing is
+submitted to GitHub Pages. The watch UI uses Garmin's native `Menu2` and
+`Picker` controls.
 
 ## Build
 

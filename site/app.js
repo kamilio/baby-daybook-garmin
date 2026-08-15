@@ -1,12 +1,14 @@
 import {
   HttpError,
+  loadBrowserSyncCredentials,
+  storeBrowserSyncCredentials,
   appleAuthorizationUrl,
   decodeDocument,
   decodeFields,
   firebaseError,
   parseAppleCallback,
-  parseWatchEvents,
-} from "./auth-core.mjs?v=20260713-4";
+  syncWatchEventsWithRelay,
+} from "./auth-core.mjs?v=20260727-1";
 
 const FIREBASE_API_KEY = "AIzaSyDIjjUS-7888pKeaVgNM1g2lSLOX4i6Na8";
 const FIREBASE_PROJECT_ID = "baby-daybook-app";
@@ -25,8 +27,6 @@ const returnToGarmin = document.querySelector("#return-to-garmin");
 const garminOAuth = new URLSearchParams(window.location.search).get("garminOAuth") === "1";
 const pageParams = new URLSearchParams(window.location.search);
 const phoneSyncMode = pageParams.get("sync") === "1";
-const SESSION_REFRESH_TOKEN = "babyDaybookGarmin.refreshToken";
-const SESSION_BABY_UID = "babyDaybookGarmin.babyUid";
 
 let refreshToken = "";
 
@@ -68,8 +68,9 @@ babyForm.addEventListener("submit", (event) => {
     return;
   }
   const callbackUrl = `connectiq://oauth?refreshToken=${refreshToken}&babyUid=${babyUid}`;
-  localStorage.setItem(SESSION_REFRESH_TOKEN, refreshToken);
-  localStorage.setItem(SESSION_BABY_UID, babyUid);
+  // Browser storage only supports the browser-sync fallback. Normal watch
+  // provisioning must still work when storage is disabled or unavailable.
+  storeBrowserSyncCredentials(localStorage, { refreshToken, babyUid });
   setupCode.value = callbackUrl;
   returnToGarmin.href = callbackUrl;
   returnToGarmin.hidden = !garminOAuth;
@@ -92,86 +93,25 @@ async function startPhoneSync() {
   const message = document.querySelector("#phone-sync-message");
   card.hidden = false;
   try {
-    const storedRefreshToken = localStorage.getItem(SESSION_REFRESH_TOKEN) || "";
-    const babyUid = localStorage.getItem(SESSION_BABY_UID) || "";
-    if (!storedRefreshToken || !babyUid) {
-      throw new Error("Sign in from the watch once before syncing events.");
+    const credentials = loadBrowserSyncCredentials(localStorage);
+    const result = await syncWatchEventsWithRelay({
+      payload: pageParams.get("events"),
+      ...credentials,
+    });
+    if (!storeBrowserSyncCredentials(localStorage, { ...credentials, refreshToken: result.refreshToken })) {
+      throw new Error("The browser could not save the updated Baby Daybook connection. Reconnect the watch and try again.");
     }
-    const events = parseWatchEvents(pageParams.get("events"));
-    const session = await refreshBrowserSession(storedRefreshToken);
-    localStorage.setItem(SESSION_REFRESH_TOKEN, session.refresh_token);
-    await commitWatchEvents(events, session.id_token, session.user_id, babyUid);
-    title.textContent = `${events.length} event${events.length === 1 ? "" : "s"} synced`;
+    title.textContent = `${result.events.length} event${result.events.length === 1 ? "" : "s"} synced`;
     message.textContent = "Returning to Connect IQ…";
-    const acked = events.map((event) => event.id).join(",");
-    window.location.assign(`connectiq://oauth?acked=${encodeURIComponent(acked)}`);
+    window.location.assign(`connectiq://oauth?acked=${encodeURIComponent(result.acked.join(","))}`);
   } catch (error) {
     title.textContent = "Sync needs attention";
     message.textContent = readableError(error);
-    const retry = document.createElement("a");
-    retry.className = "button primary-button";
-    retry.href = `connectiq://oauth?syncError=1`;
-    retry.textContent = "Return to Garmin";
-    card.append(retry);
-  }
-}
-
-async function refreshBrowserSession(storedRefreshToken) {
-  const response = await fetch(
-    `https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(FIREBASE_API_KEY)}`,
-    {
-      method: "POST",
-      headers: {
-        ...firebaseHeaders(),
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: storedRefreshToken }),
-    },
-  );
-  const body = await response.json();
-  if (!response.ok || !body.id_token || !body.user_id || !body.refresh_token) {
-    throw new Error(firebaseError(body));
-  }
-  return body;
-}
-
-async function commitWatchEvents(events, idToken, userId, babyUid) {
-  const writes = events.map((event) => {
-    const fields = {
-      uid: { stringValue: event.id },
-      userUid: { stringValue: userId },
-      babyUid: { stringValue: babyUid },
-      type: { stringValue: event.type },
-      startMillis: { integerValue: String(event.startMillis) },
-      updatedMillis: { integerValue: String(Date.now()) },
-      rev: { integerValue: "3" },
-      groupUid: { stringValue: "" },
-      notes: { stringValue: "" },
-    };
-    if (event.type === "bottle" && Number.isFinite(event.volume)) fields.volume = { doubleValue: event.volume };
-    if (event.type === "diaper_change") {
-      fields.pee = { integerValue: event.pee ? "1" : "0" };
-      fields.poo = { integerValue: event.poo ? "1" : "0" };
-    }
-    return {
-      update: {
-        name: `projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/babyData/babyUid_${babyUid}/dailyActions/${event.id}`,
-        fields,
-      },
-      updateTransforms: [{ fieldPath: "svt", setToServerValue: "REQUEST_TIME" }],
-    };
-  });
-  const response = await fetch(
-    `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents:commit`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
-      body: JSON.stringify({ writes }),
-    },
-  );
-  if (!response.ok) {
-    const body = await response.json();
-    throw new Error(body?.error?.message || `Firestore rejected the sync (${response.status}).`);
+    const returnLink = document.createElement("a");
+    returnLink.className = "button primary-button";
+    returnLink.href = "connectiq://oauth?syncError=1";
+    returnLink.textContent = "Return to Garmin";
+    card.append(returnLink);
   }
 }
 

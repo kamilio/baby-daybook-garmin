@@ -12,10 +12,6 @@
         <settingConfig type="alphaNumeric" maxLength="128" />
     </setting>
 
-    <setting propertyKey="@Properties.syncIntervalMinutes" title="@Strings.SyncIntervalMinutesTitle">
-        <settingConfig type="numeric" min="5" />
-    </setting>
-
     <setting propertyKey="@Properties.defaultBottleOz" title="@Strings.DefaultBottleOzTitle">
         <settingConfig type="numeric" min="0" />
     </setting>
